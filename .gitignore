@@ -1,0 +1,33 @@
+# DADOS DO ESCRITÓRIO — nunca versionar.
+# Contém comunicações, documentos e dados de clientes sob sigilo profissional.
+dados/
+*.db
+*.db-wal
+*.db-shm
+*.jsonl
+*.log
+
+# Atas e PDFs reais usados em spike/teste
+# ATENÇÃO: os caminhos abaixo precisam acompanhar onde os arquivos REALMENTE
+# estão. Em 09/08/2026 as 10 atas chegaram em "atas das audiencias/" — pasta que
+# nenhuma regra cobria. Documento sob sigilo profissional a um `git add .` de
+# distância. Ao receber material novo, conferir com `git status` ANTES do commit.
+atas das audiencias/
+spikes/amostras/
+tests/fixtures/reais/
+*.pdf
+
+# Segredos: o cofre é o Keychain. Se um .env aparecer aqui, é bug.
+.env
+.env.*
+*.pem
+*.pfx
+*.p12
+
+node_modules/
+.DS_Store
+
+# Documentos que só fazem sentido com os casos reais dentro (nomes de parte,
+# processos, valores). Ficam na máquina; o que vai ao git é código e arquitetura.
+coleta/
+spikes/relatorios/

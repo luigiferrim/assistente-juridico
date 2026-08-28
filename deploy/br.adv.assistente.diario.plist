@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Agendamento diário do worker (launchd).
+
+  NÃO instalado ainda — não há pipeline de coleta até a Fase 2. Este arquivo é
+  o template; instalar antes da hora criaria um job que roda todo dia sem fazer
+  nada e ensina a ignorar o agendador.
+
+  Instalar (quando a Fase 2 estiver pronta):
+    cp deploy/br.adv.assistente.diario.plist ~/Library/LaunchAgents/
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/br.adv.assistente.diario.plist
+
+  Conferir / rodar na hora / remover:
+    launchctl print gui/$(id -u)/br.adv.assistente.diario
+    launchctl kickstart -p gui/$(id -u)/br.adv.assistente.diario
+    launchctl bootout gui/$(id -u)/br.adv.assistente.diario
+
+  Notas de desenho:
+   • 07:45 — antes do expediente, para o resumo estar pronto às 8h.
+   • RunAtLoad=false: instalar não dispara coleta na hora; quem decide é o
+     agendamento (ou um kickstart explícito).
+   • Se o Mac estiver desligado no horário, o launchd dispara assim que ligar.
+     Isso é desejável, mas significa que o horário não é garantido — por isso o
+     painel mostra "última execução bem-sucedida" em vez de presumir que rodou.
+   • ProcessType=Background: o macOS pode adiar sob pressão de recursos. Mais um
+     motivo para o heartbeat existir.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>br.adv.assistente.diario</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/bin/node</string>
+        <string>/Users/SEU-USUARIO/assistente-juridico/src/worker/principal.mjs</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/SEU-USUARIO/assistente-juridico</string>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>7</integer>
+        <key>Minute</key>
+        <integer>45</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+
+    <key>StandardOutPath</key>
+    <string>/Users/SEU-USUARIO/assistente-juridico/dados/logs/worker.out.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/SEU-USUARIO/assistente-juridico/dados/logs/worker.err.log</string>
+</dict>
+</plist>
