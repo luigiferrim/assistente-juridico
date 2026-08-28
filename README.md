@@ -9,6 +9,10 @@ desde 12/08/2026**, com ciclo diário 100% automático.
 **Regra que não se negocia:** o sistema *propõe*; a advogada *aprova*. Nenhuma
 ação externa (agenda, e-mail a cliente) acontece sem aprovação humana explícita.
 
+<p align="center"><img src="docs/briefing-exemplo.png" width="640" alt="Briefing matinal de exemplo: propostas para a agenda com botão Aprovar, vencimento urgente e cartões por advogado"></p>
+
+*Briefing de exemplo, gerado pela própria suíte com dados fictícios — o e-mail que a advogada recebe às 7h.*
+
 ## O que ele faz
 
 ```
@@ -122,6 +126,12 @@ Sem `npm install`: não há dependências. Node 22+ traz `node:sqlite` nativo.
 | 3 — Extração de atas com IA e citação verificada | ⚪ não iniciada |
 
 Especificação do produto e regras operacionais: [PRODUTO.md](PRODUTO.md).
+
+## Licença
+
+Todos os direitos reservados. O código está publicado para leitura e estudo —
+portfólio — e não há, por enquanto, licença de uso, cópia ou redistribuição.
+Uso comercial ou em outro escritório: sob consulta ao autor.
 
 ## Autor
 

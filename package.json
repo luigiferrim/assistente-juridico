@@ -2,8 +2,14 @@
   "name": "assistente-juridico",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
   "description": "Assistente administrativo jurídico — monitoramento e preparação, com aprovação humana obrigatória para toda ação externa.",
+  "author": "Luigi (https://github.com/luigiferrim)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/luigiferrim/assistente-juridico.git"
+  },
+  "homepage": "https://github.com/luigiferrim/assistente-juridico#readme",
+  "license": "UNLICENSED",
   "engines": {
     "node": ">=22"
   },
