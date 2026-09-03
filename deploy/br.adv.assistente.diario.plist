@@ -2,11 +2,11 @@
 <!--
   Agendamento diário do worker (launchd).
 
-  NÃO instalado ainda — não há pipeline de coleta até a Fase 2. Este arquivo é
-  o template; instalar antes da hora criaria um job que roda todo dia sem fazer
-  nada e ensina a ignorar o agendador.
+  Template do agendamento. Em produção desde 12/08/2026 — o job real roda com
+  o rótulo do escritório e o comando `--coletar --marcar`; aqui fica a versão
+  publicável, sem identidade. Ver deploy/bloco3-coleta-local.md.
 
-  Instalar (quando a Fase 2 estiver pronta):
+  Instalar:
     cp deploy/br.adv.assistente.diario.plist ~/Library/LaunchAgents/
     launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/br.adv.assistente.diario.plist
 

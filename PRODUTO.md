@@ -12,6 +12,17 @@ ação proposta; nada executa sem aprovação.**
 
 ---
 
+> **Estado deste documento — revisto em 02/09/2026.**
+> O texto abaixo foi escrito entre 09 e 11/08/2026, **antes de o sistema
+> existir**: é a especificação que guiou a construção, não um relatório do que
+> está no ar. Revisei hoje para que ele não contradiga o que de fato foi
+> entregue. Onde a realidade divergiu do plano, a linha original ficou e vem
+> seguida de **`[mudou]`** com o que aconteceu e por quê — as divergências são
+> a parte mais informativa do documento.
+> O retrato curto do estado atual está no [README](README.md); a versão longa é
+> a tabela [O que já existe · o que falta](#o-que-já-existe--o-que-falta), no fim
+> deste arquivo.
+
 ## A manhã típica (como as advogadas usam)
 
 **8h00.** A Advogada 1 abre o briefing — uma tela (ou e-mail interno) que diz:
@@ -107,6 +118,19 @@ conferindo a data real** (`date`) — nunca a data presumida da conversa.
    aprovação **vem pré-preenchida com a lista, um e-mail por linha** — ela apaga
    a linha de quem não quer antes de enviar. Nunca "aprovar e desconvidar
    depois": o convite só sai para quem sobrou na resposta.
+   **`[mudou]` em 18/08:** a resposta por e-mail com a lista editável era uma
+   etapa a mais para uma correção que quase nunca acontecia, e o custo caía
+   sobre o caso comum. Na v4 o clique **é** a aprovação — o cartão do e-mail já
+   mostra data, partes e convidados antes do clique, e ajuste de convidados se
+   faz depois, na própria agenda. A regra de fundo continua a mesma (nada de
+   convite sem aprovação informada); mudou onde a edição acontece.
+7. **"📍 Onde encontrei" clicável em toda proposta.** Cada item traz um link
+   para a origem: a comunicação no DJEN (o campo `link` da API leva à validação
+   no PJe) ou o e-mail correspondente (permalink do Gmail). Um toque e ela vê a
+   fonte inteira.
+8. **Cadência: o briefing roda de manhã cedo, no próprio dia** (~7h, dias
+   úteis), cobrindo o acumulado desde a coleta anterior — fim de semana entra no
+   de segunda. O envio de domingo à noite foi exceção de teste.
 9. **Toda comunicação de processo com o cliente vive na conversa do processo.**
    Convenção do escritório (analisada no Gmail real): uma conversa por processo,
    assunto `PROCESSO [NOVO] {NOME DA PARTE}`, e cada novidade — audiência
@@ -135,6 +159,13 @@ conferindo a data real** (`date`) — nunca a data presumida da conversa.
     definitivo é o sistema local (Fase 2), que tem DJEN comprovado e credencial
     própria de envio. **Aviso a cliente continua rascunho sempre — isso não
     muda.**
+    **`[mudou]` — desfecho de (b), em 11/08 e 28/08:** o DJEN não bloqueia "a
+    nuvem" por política de rede; ele bloqueia **IP de datacenter**. Testado por
+    três caminhos independentes — WebFetch, proxy de nuvem e um runner do
+    GitHub Actions, este último com cabeçalhos de navegador — e os três levaram
+    403 na borda, antes da aplicação. A camada (b) morreu; a (c) é a que está
+    de pé, e é o motivo de a coleta rodar num Mac com IP comercial brasileiro.
+    Está descrito em [deploy/bloco3-coleta-local.md](deploy/bloco3-coleta-local.md).
 13. **Pós-aprovação de audiência: rascunho de aviso ao cliente na conversa do
     processo.** Além do convite de agenda, o assistente gera o e-mail de aviso
     no modelo dela (*"Informo que foi designada audiência de [tipo] no processo
@@ -143,14 +174,6 @@ conferindo a data real** (`date`) — nunca a data presumida da conversa.
     link abaixo."*), como **resposta na conversa do processo**, endereçado aos
     contatos habituais dela — **sempre RASCUNHO**, com marcador `[EDITAR: …]`
     para as orientações do caso. Ela completa e envia.
-7. **"📍 Onde encontrei" clicável em toda proposta.** Cada item traz um link
-   para a origem: a comunicação no DJEN (o campo `link` da API leva à validação
-   no PJe) ou o e-mail correspondente (permalink do Gmail). Um toque e ela vê a
-   fonte inteira.
-8. **Cadência: o briefing roda de manhã cedo, no próprio dia** (~7h, dias
-   úteis), cobrindo o acumulado desde a coleta anterior — fim de semana entra no
-   de segunda. O envio de domingo à noite foi exceção de teste.
-
 Particularidades do Advogado 3: no **eproc** a intimação eletrônica acontece
 dentro do sistema, com ciência própria — nem tudo passa pelo Diário. E os prazos
 dele seguem **CPC, não CLT**: o motor de prazos não calcula nada para
@@ -228,6 +251,16 @@ do Luigi (desenvolvimento e piloto). Para elas, duas superfícies:
    (um favorito no navegador, ex.: `http://localhost:3000`). É onde ficam os
    botões Aprovar/Editar/Rejeitar das audiências e a caixa de comando: *"avisa a
    ALFA que…"*. Por trás dessa caixa o sistema chama a IA; elas só digitam.
+   **`[mudou]` — o painel não existe, e talvez nunca exista.** Não há servidor
+   HTTP no `src/`. A aprovação achou uma superfície melhor: o **botão dentro do
+   próprio e-mail** do briefing, que cria o evento em um clique
+   ([deploy/apps-script-escritorio.md](deploy/apps-script-escritorio.md)). Isso
+   apagou a razão de ser do painel para o caso principal — ela não precisa
+   abrir nada, nem estar no escritório, e funciona do celular. O que sobra para
+   um painel eventual é a caixa de comando do aviso ao cliente, que hoje ainda
+   não tem superfície própria. Prefiro registrar isto do que fingir que a
+   especificação acertou: a decisão certa apareceu depois de a errada estar
+   escrita.
 
 **Por que um site local e não um site na internet:** os dados são sigilo
 profissional. No desenho atual, comunicação, ata e nome de cliente **nunca saem
@@ -237,29 +270,50 @@ meio. O mesmo Mac que coleta (worker via launchd) serve o painel. Limitação
 honesta: o painel só abre no escritório (ou na rede dele); fora dele, o que
 viaja é o e-mail da manhã.
 
-**No piloto (agora):** o briefing chega por e-mail, montado por mim com os
-conectores da conta — e as ações (agenda, avisos) passam pelo Luigi nesta
-sessão. A experiência delas já é a final: ler o briefing de manhã; só a cozinha
-é diferente.
+**Nota de 02/09:** a limitação acima ficou menor do que o previsto. Como a
+aprovação virou um botão no e-mail, e não uma tela do painel, a advogada aprova
+de onde estiver. O que continua valendo é o essencial: **o banco com as
+comunicações, as atas e os nomes de cliente não sai do Mac do escritório.**
 
-## Os dois modos de entrega
+## Os modos de entrega
 
-### Modo piloto — já possível, com o Claude nesta máquina
+### Modo piloto — como foi de 09/08 a 12/08
 
-Enquanto o sistema local amadurece, o fluxo inteiro roda comigo, com o Luigi no
-circuito: consulto o DJEN público (as duas OABs), leio as atas da pasta, monto o
-briefing triado, e — com aprovação — crio os eventos na Google Agenda e os
-rascunhos no Gmail pelos conectores já ligados desta conta. Serve também para
-**calibrar a triagem com feedback real** delas antes de virar código: cada "isso
-não era urgente" do piloto vira regra do sistema.
+Enquanto o sistema local não existia, o fluxo inteiro rodou por uma sessão do
+Claude com o Luigi no circuito: consulta ao DJEN público, leitura das atas da
+pasta, briefing triado à mão e — só com aprovação dele — eventos na Google
+Agenda e rascunhos no Gmail pelos conectores da conta. Serviu para o que devia
+servir: **calibrar a triagem com feedback real** antes de virar código. Cada
+"isso não era urgente" do piloto virou regra em
+[`triagem.mjs`](src/core/briefing/triagem.mjs).
 
-### Modo final — o sistema local (as fases do plano, reordenadas pela D14)
+### Modo de produção — como está desde 12/08/2026
 
-Worker via launchd toda manhã → coleta DJEN (duas OABs, paginação segura já
-testada) → extração de atas (pdfjs-dist, D11) → triagem → briefing → tela de
-aprovação → executores de agenda e e-mail com idempotência própria e auditoria
-append-only. O e-mail (leitura dos repasses das empresas — por onde chegam as
-**citações**) sobe de prioridade em relação ao plano original.
+Duas peças rodam todo dia útil, e vale ser exato sobre qual faz o quê:
+
+| Hora | O quê | Quem executa |
+|---|---|---|
+| 07:00 | monta o briefing das 7h (Gmail + Agenda + alertas de publicação) | rotina agendada do **Claude na nuvem**, com conectores |
+| 07:15 | envia o e-mail ao escritório | Apps Script na conta do escritório |
+| 07:45 | coleta DJEN das 3 OABs, grava no SQLite deduplicado, **tria por regras** e arquiva o briefing determinístico | **worker local** via launchd (`--coletar --marcar`) |
+| 08:00 | alarme se o e-mail das 7h não chegou | Apps Script (vigia-do-vigia) |
+| ▶ | clique em Aprovar → evento na agenda + rascunho do aviso | Apps Script, sob aprovação humana |
+
+**A distinção que importa:** o e-mail que a advogada lê às 7h15 é montado pela
+rotina do Claude, que enxerga Gmail e Agenda — coisas que o worker local não
+enxerga. O **worker local é a fonte da verdade do Diário**: é ele que tem o
+DJEN (bloqueado para IP de datacenter), o banco, a deduplicação, a auditoria
+append-only e a **triagem determinística**, e é dele o briefing arquivado em
+`dados/briefings/`. Ele roda hoje como fonte de dados e entrega reserva; o
+canal de entrega por token existe e está testado (`--entregar`), mas o job
+diário ainda não o usa.
+
+**Consequência honesta:** a triagem por regras explícitas — a que diz *quais
+sinais* classificaram cada cartão — governa o briefing local, não o texto do
+e-mail das 7h. Fechar essa distância (o e-mail passar a ser o briefing
+determinístico, com a rotina do Claude cobrindo só Gmail e Agenda) é o próximo
+passo natural, e é barato: falta trocar o job das 7h45 para `--entregar` e
+mover o horário.
 
 ## Arquitetura: agentes especialistas, organizador determinístico
 
@@ -270,12 +324,42 @@ parte? … e até um agente organizador?"*
 de IA, cada um com uma função estreita e um contrato estrito — mas quem os
 coordena é **código determinístico**, não um LLM.
 
-| "Agente" especialista | Função | Modelo | Contrato |
-|---|---|---|---|
-| **Triador** | classifica urgência de cada comunicação | Haiku (barato, 1 chamada/item) | schema estrito; ambíguo vira "não sei classificar", nunca palpite |
-| **Extrator** | lê ata/PDF → fatos estruturados | Opus, **dupla extração** | todo fato com trecho literal, verificado contra o documento |
-| **Redator** | rascunho do aviso ao cliente | Opus | produz rascunho; **jamais** envia |
-| **Pesquisador** (pontual) | calendários, atos de TRT | agente com busca web | saída sempre conferida por humano antes de entrar no banco |
+| "Agente" especialista | Função | Modelo previsto | Contrato | **Estado em 02/09** |
+|---|---|---|---|---|
+| **Triador** | classifica urgência de cada comunicação | Haiku (barato, 1 chamada/item) | schema estrito; ambíguo vira "não sei classificar", nunca palpite | ❌ **descartado** — virou regra determinística (abaixo) |
+| **Extrator** | lê ata/PDF → fatos estruturados | Opus, **dupla extração** | todo fato com trecho literal, verificado contra o documento | ⚪ não construído — é a Fase 3, e continua sendo o caso legítimo de IA |
+| **Redator** | rascunho do aviso ao cliente | Opus | produz rascunho; **jamais** envia | ❌ **descartado** — é um modelo fixo com marcadores `[EDITAR: …]` no Apps Script |
+| **Pesquisador** (pontual) | calendários, atos de TRT | agente com busca web | saída sempre conferida por humano antes de entrar no banco | ✅ usado — 81 entradas no banco (42 nacionais + 39 de 6 tribunais), **todas** `confirmado_em NULL` |
+
+### `[mudou]` — a decisão que este documento errou: o Triador
+
+O plano de 09/08 dava a triagem de urgência a um modelo. Hoje **não há uma
+única chamada de IA em todo o `src/`**: a triagem é código, em
+[`triagem.mjs`](src/core/briefing/triagem.mjs), e o Redator virou um texto-modelo.
+Três coisas apareceram durante a construção e viraram o argumento do avesso:
+
+1. **Os sinais eram legíveis por regra.** "Concedo o prazo de 5 dias",
+   "designada audiência", "fica intimado", valor e parcela de acordo, tipo de
+   comunicação — nada disso exige compreensão de texto. O que parecia
+   julgamento era casamento de padrão com vocabulário fechado. Onde a regra
+   não dá conta, ela não chuta: o cartão sai como *não sei classificar — olhar*,
+   que era exatamente o contrato desenhado para o modelo.
+2. **A advogada precisa saber por que o cartão está vermelho.** Um cartão diz
+   *quais sinais* o classificaram. Com um modelo, a resposta honesta à pergunta
+   "por que isso é urgente?" seria "porque o Haiku disse". Numa ferramenta em
+   que errar custa prazo, isso não é aceitável — e note que o contrato do
+   Triador, no plano acima, já se preocupava com o mesmo problema sem
+   resolvê-lo.
+3. **Regra passa em teste de mutação; prompt não.** A triagem hoje é coberta
+   por testes herméticos que rodam em ~90ms, sem rede e sem custo. Uma regressão
+   aparece no `npm test`; uma regressão de prompt aparece numa terça-feira de
+   manhã, no e-mail de alguém.
+
+Fica o registro de que a especificação errou: **o instinto de 09/08 foi pôr IA
+onde ela era mais visível, não onde ela era necessária.** A IA é necessária na
+Fase 3, lendo ata em PDF — texto livre, redigido por gente, sem vocabulário
+fechado. Lá o contrato de citação verificada vale o preço; na triagem, não
+valia.
 
 O **organizador** — coleta → dedup → extração → triagem → propostas → aprovação
 → execução — é um worker determinístico. Quatro motivos, todos deste projeto:
@@ -299,6 +383,15 @@ E cada decisão de conteúdo da IA sai com fonte citada e verificada.
 **Exceção consciente:** no modo piloto, o Claude é de fato o organizador — mas
 com o Luigi aprovando cada ação externa. É temporário, supervisionado, e serve
 justamente para calibrar as regras que o organizador determinístico vai receber.
+**`[mudou]` — a exceção durou mais do que "temporário".** Uma rotina do Claude
+ainda monta o e-mail das 7h, porque é ela que enxerga Gmail e Agenda. O
+organizador determinístico existe, roda todo dia às 7h45 e é dono do Diário, do
+banco e da triagem — mas ainda não é ele que fala com a advogada. Enquanto for
+assim, vale dizer com todas as letras: **a garantia determinística cobre o
+pipeline local, não o texto do e-mail das 7h.** As travas que protegem contra
+dano — nenhuma ação externa sem clique humano, idempotência, auditoria
+append-only — essas valem para os dois caminhos, porque moram no executor e no
+banco, não em quem redigiu o texto.
 
 **Porta aberta para o futuro:** um agente conversacional *read-only* — "o que
 ficou definido na ata do processo X?", "quais parcelas faltam da ALFA?" — é
@@ -307,22 +400,29 @@ um prazo. Candidato natural à Fase 9.
 
 ## O que já existe · o que falta
 
+**Retrato de 02/09/2026** — números conferidos no banco e na suíte, não
+estimados. A coluna da direita diz o que a linha significa hoje, mesmo quando
+isso contraria o plano descrito acima.
+
 | Peça | Estado |
 |---|---|
-| **Ingestão DJEN de produção** (3 OABs, dedup, status por fonte, auditoria) | ✅ **rodando desde 10/08** (`src/adapters/djen.mjs`) |
-| **Banco de obrigações** (parcelas/custas ressurgem sozinhas; condicionais com gatilho) | ✅ 16 carregadas dos 2 acordos |
-| **Gerador de briefing local** (triagem por regras, cartões, partes, fontes, vencimentos, cobertura) | ✅ `npm run briefing` — 98 testes verdes |
-| **Botão Aprovar → agenda** (página de confirmação no Apps Script: convidados em checkbox, aviso de duplicata, cria evento com cor + registro de auditoria) | 🟡 código pronto ([deploy/apps-script-escritorio.md](deploy/apps-script-escritorio.md)) — falta o Luigi implantar e informar a URL |
-| **Vigia do vigia** (8h: briefing não chegou → alerta 🚨 com roteiro de diagnóstico) | 🟡 no mesmo script, falta implantar |
-| **Entrega local por token** (sistema local → POST ao Apps Script → e-mail enviado; elimina a dependência do CLI para entrega no bloco 3) | 🟡 idem |
-| Coleta DJEN segura (paginação, rate limit, erro ≠ fim) | ✅ testada (spike, 2 implementações) |
-| Extração de texto de PDF + verificação de citação | ✅ medida no S5; produção usará pdfjs-dist |
-| Regra da data-base (disponibilização +1 útil) | ✅ confirmada com dado real |
-| Fundação: banco, auditoria, idempotência, segredos, jobs | ✅ 70 testes verdes |
-| Motor de prazos (segunda dupla de olhos) | ⚠️ provisório por decisão — tudo sai CONFIRMAR |
-| Calendários dos 6 tribunais | 🔴 a coletar (3 datas do TRT12 já deduzidas) |
-| Triagem de urgência | 🔴 a calibrar (piloto) |
-| Briefing + tela de aprovação | 🔴 a construir (Fases 2/4) |
-| Executor de agenda (OAuth, idempotência) | 🔴 Fase 6 · no piloto: conector |
-| Leitura de e-mail (repasses das empresas) | 🔴 decisão de escopo pendente (readonly) |
-| Medição de cobertura (S3) | ⏳ registro dela chega ~23/08 |
+| **Ingestão DJEN de produção** (3 OABs, dedup, status por fonte, auditoria) | ✅ rodando desde 10/08 — **163 comunicações** em 17 dias de coleta (`src/adapters/djen.mjs`) |
+| **Coleta DJEN segura** (paginação, rate limit, erro ≠ fim de lista) | ✅ testada em 2 implementações (Node e Python) |
+| **Coleta local por launchd** (dias úteis, 07:45, retomada ao acordar) | ✅ instalada em 12/08 — obrigatória: o DJEN dá 403 em IP de datacenter |
+| **Triagem de urgência** | ✅ determinística, por regra explícita — o Triador com IA foi **descartado** (ver acima) |
+| **Gerador de briefing local** (cartões, partes, fontes, vencimentos, cobertura declarada) | ✅ `npm run briefing` — arquiva em `dados/briefings/` |
+| **Banco de obrigações** (parcelas/custas ressurgem sozinhas) | ✅ 16 carregadas dos 2 acordos |
+| **Fundação** (banco `STRICT`, auditoria append-only, idempotência, segredos no Keychain, jobs) | ✅ |
+| **Suíte de testes** | ✅ **112 verdes** — 83 de fundação/ingestão/briefing + 29 dos spikes, 100% herméticos |
+| **Botão Aprovar → agenda** (um clique cria o evento; trava anti-duplicata, desfazer, cor do advogado, convites) | ✅ **v4 em produção desde 18/08** ([deploy/apps-script-escritorio.md](deploy/apps-script-escritorio.md)) |
+| **Rascunho de aviso ao cliente** na conversa do processo, após aprovar | ✅ v3.2 — modelo fixo com `[EDITAR: …]`, sempre rascunho |
+| **Vigia do vigia** (8h: briefing não chegou → alerta com roteiro de diagnóstico) | ✅ implantado |
+| **Regra da data-base** (publicação = disponibilização + 1 dia útil) | ✅ confirmada contra a tela do PJe em 4 pares independentes |
+| **Calendários dos tribunais** | ✅ 81 entradas semeadas (42 nacionais + 39 de TRT12/3/6/9/15 e TST) · ⚠️ **nenhuma confirmada por humano** — por desenho |
+| **Entrega local por token** (worker → POST ao Apps Script → e-mail) | 🟡 implantada e testada (`--entregar`), mas o job das 7h45 **ainda não a usa** — quem entrega às 7h15 é a rotina do Claude |
+| **Motor de prazos** (segunda dupla de olhos) | ⚠️ **NÃO APROVADO** (`APROVADO_PELA_ADVOGADA = false`) — tudo sai `requerConfirmacao`; falta o gabarito calculado à mão ([REGRA-DO-ESCRITORIO.md](src/core/prazos/REGRA-DO-ESCRITORIO.md)) |
+| **Registro de aprovação no banco local** | 🔴 **não existe** — `aprovacoes` e `execucoes` estão vazias; hoje o rastro do clique vive no Apps Script (e-mail de auditoria), fora do SQLite. Buraco conhecido de auditoria |
+| **Extração de atas com IA + citação verificada** (Fase 3) | ⚪ não iniciada — extração de texto de PDF já medida no S5; produção usará pdfjs-dist |
+| **Painel local** (`localhost:3000`) | ❌ **descartado** — o botão no e-mail resolveu o caso principal |
+| **Leitura de e-mail** (repasses das empresas, por onde chegam as citações) | 🔴 decisão de escopo pendente (read-only) — é o maior furo de cobertura conhecido |
+| **Medição de cobertura (S3)** | 🔴 não retomada |

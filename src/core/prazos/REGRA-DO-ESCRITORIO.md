@@ -5,9 +5,10 @@ advogadas + telas de expediente do PJe) · **Estado:** ⚠️ NÃO VALIDADA — 
 10 casos de referência.
 
 > Este documento é a fonte da verdade sobre a regra. O código em `index.mjs` e
-> `calendario.mjs` deve refletir **isto**, não a minha leitura da lei. Onde a
-> regra informada divergir do que encontrei na legislação, a divergência fica
-> registrada aqui e **é resolvida por ela**, não por mim.
+> `calendario.mjs` deve refletir **isto**, não uma leitura própria da lei. Onde
+> a regra informada divergir do que a legislação diz, a divergência fica
+> registrada aqui e **é resolvida pela advogada** — nunca no código, em
+> silêncio.
 
 ## Regra informada (texto literal, 09/08/2026)
 
@@ -34,7 +35,7 @@ tribunal**. Refiz as contas linha a linha.
 
 | Processo | Data de Ciência | Prazo | Fim (PJe) | Conferência |
 |---|---|---|---|---|
-| 0900002-26.2025.5.12.0901 | 19/05/2026 (ter) | 10 | 02/06/2026 | ✅ |
+| 0900002-99.2025.5.12.0901 | 19/05/2026 (ter) | 10 | 02/06/2026 | ✅ |
 | 0000012-13 | 22/04/2026 (qua) | 5 | 29/04/2026 | ✅ |
 | 0000002-22.2026.5.12.0002 | 09/06/2026 (ter) | 15 | 30/06/2026 | ✅ |
 
@@ -125,7 +126,7 @@ nos mesmos processos:
 
 | Processo | `data_disponibilizacao` (API) | Data de Ciência (tela) | Diferença |
 |---|---|---|---|
-| 0900002-26.2025.5.12.0901 | 04/08/2026 (ter) | 05/08/2026 (qua) | **+1 dia útil** |
+| 0900002-99.2025.5.12.0901 | 04/08/2026 (ter) | 05/08/2026 (qua) | **+1 dia útil** |
 | 0000012-13 | 03/08/2026 (seg) | 04/08/2026 (ter) | **+1 dia útil** |
 | 0000002-22.2026.5.12.0002 | 06/08/2026 (qui) | 07/08/2026 (sex) | **+1 dia útil** |
 | 0900001 (intimação anterior) | 03/08/2026 (seg) | 04/08/2026 (ter) | **+1 dia útil** |
@@ -197,7 +198,7 @@ começava na segunda e vencia **2 dias tarde demais** — erro na direção peri
 **Correção aplicada com autorização do Luigi** ("pode corrigir"): no ramo
 `dias_corridos` o início não escorrega mais; a prorrogação do vencimento
 (regra 9) permanece. Protegida por teste **não-provisório** em
-`tests/prazos.test.mjs` que cita a resposta literal dela. 70 testes verdes.
+`tests/prazos.test.mjs` que cita a resposta literal dela.
 
 ---
 

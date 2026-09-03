@@ -55,8 +55,15 @@ além das iniciais; cópias da mesma intimação para vários destinatários vir
    uma segunda dupla de olhos permanente, marcado `requerConfirmacao`.
 6. **Segredo não toca o disco do projeto** — Keychain do macOS; o log técnico
    nunca carrega teor de comunicação (sanitização recursiva).
-7. **Triagem determinística, sem IA** — explicável cartão a cartão. IA fica
-   reservada para a extração de atas (Fase 3), com citação verificada no texto.
+7. **Triagem determinística, sem IA** — o pipeline local classifica por regra,
+   explicável cartão a cartão; não há uma única chamada de modelo em `src/`.
+   Era para ser um classificador Haiku: virou regra quando ficou claro que os
+   sinais eram legíveis por padrão e que "por que isto é urgente?" precisa de
+   resposta melhor que "porque o modelo disse". IA fica reservada para a
+   extração de atas (Fase 3), com citação verificada no texto. Ressalva honesta:
+   o e-mail das 7h ainda é montado pela rotina do Claude (é ela que enxerga
+   Gmail e Agenda) — a triagem por regra governa o briefing local, e fechar essa
+   distância é o próximo passo. Detalhe em [PRODUTO.md](PRODUTO.md).
 8. **Calendários de 6 tribunais** (TRT12/3/6/9/15 e TST) semeados de portarias
    oficiais, entrada a entrada — e todos nascem `confirmado_em NULL` até
    validação humana. Regra descoberta e testada contra a tela do PJe:
