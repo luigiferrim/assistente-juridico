@@ -20,7 +20,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { abrirBanco } from "../core/db.mjs";
 import { coletarDjen } from "../adapters/djen.mjs";
-import { montarBriefing } from "../core/briefing/index.mjs";
+import { marcarRelatadas, montarBriefing } from "../core/briefing/index.mjs";
 import { renderizarHtml } from "../core/briefing/html.mjs";
 import { somarDias } from "../core/prazos/calendario.mjs";
 
@@ -58,7 +58,9 @@ try {
   /* sem config: modo resposta */
 }
 
-const modelo = montarBriefing(db, { hoje, marcar: args.includes("--marcar") });
+// Monta SEM consumir: a marcação acontece só DEPOIS que o HTML foi gravado
+// (e entregue, quando --entregar) — falha no meio não pode engolir novidade.
+const modelo = montarBriefing(db, { hoje });
 const html = renderizarHtml(modelo, {
   urlAprovacao: config.aprovacao_url ?? undefined,
   tokenAprovacao: config.aprovacao_token ?? null,
@@ -72,7 +74,7 @@ writeFileSync(destino, html);
 console.log(`briefing de ${hoje}: ${modelo.totais.comunicacoesNovas} novidade(s), ` +
   `${modelo.totais.urgentes} urgente(s), ${modelo.propostasAgenda.length} proposta(s) de agenda, ` +
   `${modelo.vencimentos.length} vencimento(s) em 14 dias`);
-console.log(`html: ${destino}${args.includes("--marcar") ? " (itens marcados como relatados)" : " (prévia — nada consumido)"}`);
+console.log(`html: ${destino}${args.includes("--marcar") ? "" : " (prévia — nada consumido)"}`);
 
 if (args.includes("--entregar")) {
   // Entrega reserva (bloco 3): POST no App da Web do escritório, que envia o
@@ -103,6 +105,11 @@ if (args.includes("--entregar")) {
     process.exit(1);
   }
   console.log("entrega: e-mail enviado à caixa do escritório via Apps Script ✓");
+}
+
+if (args.includes("--marcar")) {
+  const n = marcarRelatadas(db, modelo.idsNovas, hoje);
+  console.log(`${n} item(ns) marcados como relatados — consumo só após gravação/entrega`);
 }
 
 if (falhaDeColeta) {

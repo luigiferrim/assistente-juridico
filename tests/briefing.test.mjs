@@ -16,7 +16,7 @@ import {
   publicacaoEstimada,
   triar,
 } from "../src/core/briefing/triagem.mjs";
-import { montarBriefing } from "../src/core/briefing/index.mjs";
+import { marcarRelatadas, montarBriefing } from "../src/core/briefing/index.mjs";
 import { renderizarHtml } from "../src/core/briefing/html.mjs";
 
 const HOJE = "2026-08-10";
@@ -317,6 +317,75 @@ test("CRÍTICO: cópias por destinatário viram UM cartão e UMA proposta — e 
 
   const amanha = montarBriefing(db, { advogados: ADVOGADOS_FICTICIOS, hoje: "2026-08-11", regrasConvidados: [] });
   assert.equal(amanha.totais.comunicacoesNovas, 0, "a cópia também foi marcada — não ressurge");
+});
+
+test("CRÍTICO: comunicação de OAB fora do cadastro NÃO some — cai na 1ª seção com aviso", () => {
+  // Cenário real possível: advogado sai do config, mas o Diário ainda emite
+  // em nome da inscrição dele — ou a coleta vincula uma OAB inesperada.
+  const db = bancoComCenario();
+  const exec = db.prepare("SELECT id FROM fontes_execucao LIMIT 1").get().id;
+  const id = db
+    .prepare(
+      `INSERT INTO comunicacoes (djen_id, hash_djen, numero_cnj, tribunal, orgao, tipo_comunicacao, tipo_documento,
+        data_disponibilizacao, texto, texto_sha256, link, bruto, execucao_id, criado_em)
+       VALUES (9, '', '0000009-99.2026.5.12.0009', 'TRT12', '1ª VT de Exemplo', 'Citação', 'Citação',
+        '2026-08-07', 'CITAÇÃO. Prazo de 5 dias para apresentar defesa.', 's9', 'https://pje/validacao/9', 'null', ?, ?)`,
+    )
+    .run(exec, agora()).lastInsertRowid;
+  db.prepare("INSERT INTO comunicacoes_oab (comunicacao_id, oab) VALUES (?, '99999/SC')").run(id);
+
+  const m = montarBriefing(db, { advogados: ADVOGADOS_FICTICIOS, hoje: HOJE, regrasConvidados: [] });
+  const item = m.secoes[0].itens.find((i) => i.numeroCnj === "0000009-99.2026.5.12.0009");
+  assert.ok(item, "o cartão existe — nunca desaparece do briefing");
+  assert.match(item.sinais[0], /OAB 99999\/SC fora do cadastro/, "o aviso diz qual OAB e onde conferir");
+  assert.ok(
+    m.secoes.slice(1).every((sec) => !sec.itens.some((i) => i.numeroCnj === "0000009-99.2026.5.12.0009")),
+    "só na primeira seção — sem duplicar",
+  );
+});
+
+test("obrigação de advogado fora do cadastro também não some", () => {
+  const db = bancoComCenario();
+  db.prepare(
+    `INSERT INTO obrigacoes (chave_natural, numero_cnj, partes, tipo, descricao, valor_centavos, vencimento, gatilho, advogado_oab, status, fonte, criado_em)
+     VALUES ('obr:orfa', '0000008-88.2026.5.12.0008', 'Beltrano de Teste × Alfa', 'parcela', '5ª parcela', 100000, ?, NULL, '99999/SC', 'pendente', 'ata teste', ?)`,
+  ).run(HOJE, agora());
+
+  const m = montarBriefing(db, { advogados: ADVOGADOS_FICTICIOS, hoje: HOJE, regrasConvidados: [] });
+  const cartao = m.secoes[0].itens.find((i) => i.origem === "obrigacao" && i.numeroCnj === "0000008-88.2026.5.12.0008");
+  assert.ok(cartao, "o 🔴 de vencimento existe mesmo sem dono no cadastro");
+  assert.ok(cartao.sinais.some((s) => /99999\/SC fora do cadastro/.test(s)));
+});
+
+test("custas não herdam a cláusula de multa das parcelas", () => {
+  const db = bancoComCenario();
+  db.prepare(
+    `INSERT INTO obrigacoes (chave_natural, numero_cnj, partes, tipo, descricao, valor_centavos, vencimento, gatilho, advogado_oab, status, fonte, criado_em)
+     VALUES ('obr:custasHoje', '0000003-33.2026.5.12.0003', 'Fulano de Teste × Alfa', 'custas', 'Custas finais', 80000, ?, NULL, '10001/SC', 'pendente', 'ata teste', ?)`,
+  ).run(HOJE, agora());
+
+  const m = montarBriefing(db, { advogados: ADVOGADOS_FICTICIOS, hoje: HOJE, regrasConvidados: [] });
+  const cartoes = m.secoes.find((s) => s.advogado.oab === "10001/SC").itens.filter((i) => i.origem === "obrigacao");
+  const custas = cartoes.find((i) => /Custas finais/.test(i.trecho));
+  const parcela = cartoes.find((i) => /3ª parcela/.test(i.trecho));
+  assert.ok(custas && parcela, "os dois vencem hoje e viram cartão");
+  assert.match(parcela.trecho, /multa de 30%/, "parcela de acordo carrega a cláusula da ata");
+  assert.doesNotMatch(custas.trecho, /multa de 30%/, "custas NÃO ganham cláusula inventada");
+});
+
+test("CRÍTICO: marcarRelatadas separada permite consumir só APÓS gravar/entregar", () => {
+  const db = bancoComCenario();
+  const m = montarBriefing(db, { advogados: ADVOGADOS_FICTICIOS, hoje: HOJE, regrasConvidados: [] });
+  assert.ok(m.idsNovas.length >= 1, "o modelo expõe os ids de todas as cópias novas");
+
+  // Entrega falhou → nada foi marcado → amanhã a novidade RESSURGE.
+  const amanhaSemMarcar = montarBriefing(db, { advogados: ADVOGADOS_FICTICIOS, hoje: "2026-08-11", regrasConvidados: [] });
+  assert.equal(amanhaSemMarcar.totais.comunicacoesNovas, 1, "sem marcação explícita, nada é consumido");
+
+  // Entrega ok → chamador marca → some de vez.
+  marcarRelatadas(db, m.idsNovas, HOJE);
+  const amanha = montarBriefing(db, { advogados: ADVOGADOS_FICTICIOS, hoje: "2026-08-11", regrasConvidados: [] });
+  assert.equal(amanha.totais.comunicacoesNovas, 0, "marcado após a entrega — não ressurge");
 });
 
 test("litisconsórcio real: 'E OUTROS (3)' não quebra a extração", () => {

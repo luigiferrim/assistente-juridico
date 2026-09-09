@@ -145,7 +145,20 @@ export function montarBriefing(
       link: c.link,
       compartilhadaCom,
     };
-    secoes.get(principal)?.itens.push(item);
+    // OAB fora do cadastro (advogado removido do config, vínculo inesperado):
+    // o cartão cai na PRIMEIRA seção com aviso — nunca some. Perder item em
+    // silêncio é o pior modo de falha; pior ainda seria marcá-lo como
+    // relatado sem nunca ter sido exibido.
+    const secao = secoes.get(principal);
+    if (secao) {
+      secao.itens.push(item);
+    } else {
+      item.sinais = [
+        `⚠️ OAB ${principal ?? "desconhecida"} fora do cadastro de advogados — conferir dados/config.json`,
+        ...item.sinais,
+      ];
+      secoes.get(ordem[0])?.itens.push(item);
+    }
 
     for (const comp of t.compromissos) {
       // O mesmo compromisso pode aparecer em mais de um expediente (e mais de
@@ -219,7 +232,7 @@ export function montarBriefing(
     const entrada = { ...o, diasRestantes: dias, vencida: dias < 0 };
     vencimentos.push(entrada);
     if (dias <= 2) {
-      secoes.get(o.advogado_oab)?.itens.push({
+      const cartao = {
         origem: "obrigacao",
         urgencia: "hoje",
         tipoDocumento: "Vencimento",
@@ -233,10 +246,22 @@ export function montarBriefing(
               ? "vence HOJE"
               : `vence em ${dias} dia(s)`,
         ],
-        trecho: `${o.descricao} — R$ ${(o.valor_centavos / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}. Inadimplemento: multa de 30% + vencimento antecipado.`,
+        // A cláusula de inadimplemento vem das atas dos acordos e vale para
+        // PARCELA; custas/honorários não têm multa de 30% — afirmar isso no
+        // cartão seria inventar cláusula que a advogada leria como fato.
+        trecho:
+          `${o.descricao} — R$ ${(o.valor_centavos / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` +
+          (o.tipo === "parcela" ? ". Inadimplemento: multa de 30% + vencimento antecipado." : "."),
         fonteObrigacao: o.fonte,
         vencimento: o.vencimento,
-      });
+      };
+      const secaoObr = secoes.get(o.advogado_oab);
+      if (secaoObr) {
+        secaoObr.itens.push(cartao);
+      } else {
+        cartao.sinais.push(`⚠️ advogado ${o.advogado_oab ?? "?"} fora do cadastro — conferir dados/config.json`);
+        secoes.get(ordem[0])?.itens.push(cartao);
+      }
     }
   }
 
@@ -245,19 +270,15 @@ export function montarBriefing(
   for (const s of secoes.values()) s.itens.sort((a, b) => peso[a.urgencia] - peso[b.urgencia]);
 
   // ---- Marca como relatadas (opt-in) ---------------------------------------
-  if (marcar && brutas.length > 0) {
-    const ins = db.prepare(
-      "INSERT OR IGNORE INTO briefing_itens (comunicacao_id, briefing_data) VALUES (?, ?)",
-    );
-    // Marca TODAS as cópias, não só a representante do grupo — senão as
-    // cópias ressurgiriam amanhã como novidade.
-    emTransacao(db, () => {
-      for (const c of brutas) ins.run(c.id, hoje);
-    });
-  }
+  // Marca TODAS as cópias, não só a representante do grupo — senão as
+  // cópias ressurgiriam amanhã como novidade.
+  if (marcar) marcarRelatadas(db, brutas.map((c) => c.id), hoje);
 
   return {
     data: hoje,
+    // Ids de TODAS as comunicações novas (cópias incluídas) — para o chamador
+    // que gera com marcar:false e só consome após gravar/entregar o HTML.
+    idsNovas: brutas.map((c) => c.id),
     // Hora LOCAL de São Paulo, formato brasileiro — o rodapé é lido por
     // advogada, não por máquina (ISO/UTC no e-mail confunde: 3h adiantado).
     geradoEm: new Date()
@@ -281,4 +302,21 @@ export function montarBriefing(
       urgentes: [...secoes.values()].flatMap((s) => s.itens).filter((i) => i.urgencia === "hoje").length,
     },
   };
+}
+
+/**
+ * Marca comunicações como relatadas no briefing da data. Vive FORA de
+ * montarBriefing para o chamador poder gravar e entregar o HTML PRIMEIRO e só
+ * então consumir a novidade — item consumido por um briefing que falhou em
+ * chegar é perda silenciosa, o defeito que este sistema existe para evitar.
+ */
+export function marcarRelatadas(db, comunicacaoIds, briefingData) {
+  if (!comunicacaoIds?.length) return 0;
+  const ins = db.prepare(
+    "INSERT OR IGNORE INTO briefing_itens (comunicacao_id, briefing_data) VALUES (?, ?)",
+  );
+  emTransacao(db, () => {
+    for (const id of comunicacaoIds) ins.run(id, briefingData);
+  });
+  return comunicacaoIds.length;
 }
