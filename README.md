@@ -38,7 +38,7 @@ além das iniciais; cópias da mesma intimação para vários destinatários vir
 | Persistência | **SQLite** com tabelas `STRICT`, migrações versionadas, trigger de auditoria *append-only* e chaves de idempotência |
 | Integrações | API pública do **DJEN/Comunica CNJ** (cliente próprio: paginação defensiva, retry, dedup por id); **Google Apps Script** na conta do escritório (Gmail + Calendar: envio, alarme, botão Aprovar, canal de entrega com token); **launchd** (macOS) para a coleta diária |
 | Orquestração | Rotina agendada de **Claude** na nuvem monta o briefing das 7h com conectores Gmail/Calendar; o gerador local (`npm run briefing`) é a entrega reserva |
-| Qualidade | `node --test`: **112 testes** (83 de fundação/ingestão/briefing + 29 dos spikes), 100% herméticos — sem rede, sem dado real, sem estado da máquina |
+| Qualidade | `node --test`: **116 testes** (87 de fundação/ingestão/briefing + 29 dos spikes), 100% herméticos — sem rede, sem dado real, sem estado da máquina |
 | Fase 0 | Spikes em Node e **Python** (limites de taxa do DJEN, DataJud, extração de texto de PDF com ordem de leitura) |
 
 ## Decisões de engenharia que valem a leitura
@@ -99,8 +99,8 @@ deploy/        Apps Script do escritório + launchd
 ## Rodar
 
 ```bash
-npm test                      # 83 testes (fundação + ingestão + briefing)
-npm run test:tudo             # + 29 dos spikes = 112
+npm test                      # 87 testes (fundação + ingestão + briefing)
+npm run test:tudo             # + 29 dos spikes = 116
 npm run briefing              # prévia do briefing local (não consome itens)
 npm run briefing:oficial      # coleta DJEN + gera + marca como relatado
 node src/core/diagnostico.mjs # estado do banco, auditoria, segredos e portões
