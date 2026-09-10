@@ -31,3 +31,6 @@ node_modules/
 # processos, valores). Ficam na máquina; o que vai ao git é código e arquitetura.
 coleta/
 spikes/relatorios/
+
+# Relatório de cobertura gerado por `npm run test:cobertura` (node:test nativo).
+cobertura/

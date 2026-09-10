@@ -185,3 +185,55 @@ test("verificar-readme: badge ausente é divergência, não silêncio", () => {
   assert.deepEqual(conferirReadme(semLicenca, fatos), ["badge de licença: trecho não encontrado no README"]);
   assert.deepEqual(conferirReadme("# README vazio", fatos).length, 7);
 });
+
+// ---------------------------------------------------------------------------
+// cobertura — o LCOV do Node vira resumo; o que a suíte não carrega é declarado
+// ---------------------------------------------------------------------------
+
+import { lerLcov, resumoMarkdown as resumoCobertura } from "../ferramentas/cobertura.mjs";
+
+const LCOV_EXEMPLO = [
+  "TN:",
+  "SF:src/core/db.mjs",
+  "FN:21,agora",
+  "FNF:4",
+  "FNH:3",
+  "BRF:12",
+  "BRH:7",
+  "LF:90",
+  "LH:84",
+  "end_of_record",
+  "TN:",
+  "SF:src/core/auditoria.mjs",
+  "FNF:9",
+  "FNH:5",
+  "BRF:6",
+  "BRH:5",
+  "LF:95",
+  "LH:86",
+  "end_of_record",
+].join("\n");
+
+test("cobertura: LCOV vira registros ordenados por arquivo, com linhas, ramos e funções", () => {
+  const registros = lerLcov(LCOV_EXEMPLO);
+  assert.deepEqual(
+    registros.map((r) => r.arquivo),
+    ["src/core/auditoria.mjs", "src/core/db.mjs"],
+  );
+  assert.deepEqual(registros[1], { arquivo: "src/core/db.mjs", linhas: { t: 90, c: 84 }, ramos: { t: 12, c: 7 }, funcoes: { t: 4, c: 3 } });
+  assert.deepEqual(lerLcov(""), []);
+});
+
+test("cobertura: o resumo soma totais e DECLARA os módulos que a suíte não carregou", () => {
+  const md = resumoCobertura(lerLcov(LCOV_EXEMPLO), ["src/worker/principal.mjs", "src/core/segredos.mjs"], { testes: 99, falhas: 0 });
+  assert.match(md, /Suíte: \*\*99 testes\*\*, todos passando/);
+  assert.match(md, /\| `src\/core\/db\.mjs` \| 93\.3% \| 58\.3% \| 75\.0% \|/);
+  assert.match(md, /\*\*2 módulo\(s\) medido\(s\)\*\* \| \*\*91\.9%\*\* \(170\/185\)/, "total de linhas = soma, não média");
+  assert.match(md, /2 módulo\(s\) de `src\/` fora da medição/);
+  assert.match(md, /- `src\/worker\/principal\.mjs`/);
+  assert.match(md, /2 de 4 módulos medidos/);
+
+  const completo = resumoCobertura(lerLcov(LCOV_EXEMPLO), [], { testes: 3, falhas: 1 });
+  assert.match(completo, /\*\*1 falhando\*\*/);
+  assert.match(completo, /Todos os módulos de `src\/` foram carregados/);
+});

@@ -53,6 +53,12 @@ jobs:
       - name: Spikes em Python
         run: python3 -m unittest discover -s spikes/lib -t spikes/lib -v
 
+      # Cobertura nativa do node:test. O resumo vai para o "step summary" da execução,
+      # inclusive a lista dos módulos que a suíte não carrega — sem badge de porcentagem,
+      # porque o Node só mede o que executou e o número sozinho enganaria.
+      - name: Cobertura (resumo no step summary)
+        run: npm run test:cobertura
+
       # Os badges do README são estáticos; este passo é o que os mantém honestos:
       # conta os testes de verdade, lê o package.json e falha se o README divergir.
       - name: README confere com o código (testes, Node, dependências, licença)
