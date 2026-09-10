@@ -53,6 +53,11 @@ jobs:
       - name: Spikes em Python
         run: python3 -m unittest discover -s spikes/lib -t spikes/lib -v
 
+      # Os badges do README são estáticos; este passo é o que os mantém honestos:
+      # conta os testes de verdade, lê o package.json e falha se o README divergir.
+      - name: README confere com o código (testes, Node, dependências, licença)
+        run: node ferramentas/verificar-readme.mjs
+
   auditoria-vazamento:
     name: Auditoria de vazamento · árvore + histórico
     runs-on: ubuntu-latest

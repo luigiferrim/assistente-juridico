@@ -139,3 +139,49 @@ test("auditoria: redação e detecção de binário", () => {
   assert.equal(ehBinario(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0x0a])), true, "PNG tem NUL");
   assert.equal(ehBinario(Buffer.from("texto comum\ncom acentos: ção", "utf8")), false);
 });
+
+// ---------------------------------------------------------------------------
+// verificar-readme — os badges são estáticos; a honestidade vem deste portão
+// ---------------------------------------------------------------------------
+
+import { conferirReadme, fatosDoCodigo } from "../ferramentas/verificar-readme.mjs";
+
+const README_COERENTE = [
+  "![testes](https://img.shields.io/badge/testes-126-2ea44f)",
+  "![Node](https://img.shields.io/badge/node-%E2%89%A5%2022-339933?logo=node.js)",
+  "![deps](https://img.shields.io/badge/depend%C3%AAncias_npm-0-1f6feb)",
+  "![licença](https://img.shields.io/badge/licen%C3%A7a-todos_os_direitos_reservados-lightgrey)",
+  "| Qualidade | `node --test`: **126 testes** (97 de fundação/ingestão/briefing/ferramentas + 29 dos spikes) |",
+  "npm test                      # 97 testes",
+  "npm run test:tudo             # + 29 dos spikes = 126",
+].join("\n");
+
+const PKG = { engines: { node: ">=22" }, dependencies: {}, devDependencies: {}, license: "UNLICENSED" };
+
+test("verificar-readme: README coerente passa; contagem divergente, Node e dependência são apontados", () => {
+  const fatos = fatosDoCodigo({ base: 97, spikes: 29, pkg: PKG });
+  assert.deepEqual(fatos, { testesTotal: 126, testesBase: 97, testesSpikes: 29, nodeMinimo: "22", dependencias: 0, licenca: "UNLICENSED" });
+  assert.deepEqual(conferirReadme(README_COERENTE, fatos), []);
+
+  // Alguém acrescentou um teste e não mexeu no README: cinco lugares ficam velhos
+  // (badge, total e fundação na tabela Stack, os dois comentários do bloco "Rodar").
+  const comTesteNovo = fatosDoCodigo({ base: 98, spikes: 29, pkg: PKG });
+  const d = conferirReadme(README_COERENTE, comTesteNovo);
+  assert.equal(d.length, 5, d.join("\n"));
+  assert.ok(d.every((x) => /badge de testes|tabela Stack|npm test|test:tudo/.test(x)));
+
+  // Dependência entrou, Node subiu: os badges correspondentes mentem.
+  const mudouStack = fatosDoCodigo({ base: 97, spikes: 29, pkg: { ...PKG, engines: { node: ">=24" }, devDependencies: { eslint: "^9" } } });
+  const d2 = conferirReadme(README_COERENTE, mudouStack);
+  assert.deepEqual(
+    d2,
+    ['badge do Node: README diz "≥ 22", código tem "≥ 24"', 'badge de dependências: README diz "0", código tem "1"'],
+  );
+});
+
+test("verificar-readme: badge ausente é divergência, não silêncio", () => {
+  const fatos = fatosDoCodigo({ base: 97, spikes: 29, pkg: PKG });
+  const semLicenca = README_COERENTE.split("\n").filter((l) => !l.includes("licen%C3%A7a")).join("\n");
+  assert.deepEqual(conferirReadme(semLicenca, fatos), ["badge de licença: trecho não encontrado no README"]);
+  assert.deepEqual(conferirReadme("# README vazio", fatos).length, 7);
+});

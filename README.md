@@ -1,5 +1,15 @@
 # Assistente Administrativo Jurídico
 
+[![CI](https://github.com/luigiferrim/assistente-juridico/actions/workflows/ci.yml/badge.svg)](https://github.com/luigiferrim/assistente-juridico/actions/workflows/ci.yml)
+![testes](https://img.shields.io/badge/testes-126-2ea44f)
+![Node ≥ 22](https://img.shields.io/badge/node-%E2%89%A5%2022-339933?logo=node.js&logoColor=white)
+![dependências npm: 0](https://img.shields.io/badge/depend%C3%AAncias_npm-0-1f6feb)
+![licença: todos os direitos reservados](https://img.shields.io/badge/licen%C3%A7a-todos_os_direitos_reservados-lightgrey)
+
+<sup>Os badges de testes, Node, dependências e licença são estáticos — e por isso a CI os
+**confere a cada execução** contra a suíte e o `package.json`
+([verificar-readme.mjs](ferramentas/verificar-readme.mjs)). Se este README divergir do código, o build falha.</sup>
+
 Assistente que, toda manhã, lê o Diário de Justiça (DJEN/Comunica CNJ), faz a
 triagem do que chegou para cada advogado, monta um briefing por e-mail e, com
 **um clique de aprovação**, coloca a audiência na Google Agenda e prepara o
@@ -38,7 +48,7 @@ além das iniciais; cópias da mesma intimação para vários destinatários vir
 | Persistência | **SQLite** com tabelas `STRICT`, migrações versionadas, trigger de auditoria *append-only* e chaves de idempotência |
 | Integrações | API pública do **DJEN/Comunica CNJ** (cliente próprio: paginação defensiva, retry, dedup por id); **Google Apps Script** na conta do escritório (Gmail + Calendar: envio, alarme, botão Aprovar, canal de entrega com token); **launchd** (macOS) para a coleta diária |
 | Orquestração | Rotina agendada de **Claude** na nuvem monta o briefing das 7h com conectores Gmail/Calendar; o gerador local (`npm run briefing`) é a entrega reserva |
-| Qualidade | `node --test`: **116 testes** (87 de fundação/ingestão/briefing + 29 dos spikes), 100% herméticos — sem rede, sem dado real, sem estado da máquina |
+| Qualidade | `node --test`: **126 testes** (97 de fundação/ingestão/briefing/ferramentas + 29 dos spikes), 100% herméticos — sem rede, sem dado real, sem estado da máquina. **CI no GitHub Actions** (Node 22): suíte + auditoria de vazamento sobre a árvore e o histórico inteiro, que derruba o build a qualquer achado |
 | Fase 0 | Spikes em Node e **Python** (limites de taxa do DJEN, DataJud, extração de texto de PDF com ordem de leitura) |
 
 ## Decisões de engenharia que valem a leitura
@@ -79,7 +89,13 @@ logs e materiais de coleta são ignorados. Os nomes, processos e valores citados
 em código, testes e documentação são fictícios (os números CNJ sintéticos têm
 dígito verificador inválido de propósito). Um teste de **guarda de hermetismo**
 lê os termos reais do config da máquina em tempo de execução e falha se algum
-aparecer no repositório — a suíte policia o próprio sigilo.
+aparecer no repositório — a suíte policia o próprio sigilo. E a CI roda uma
+**auditoria de vazamento** ([auditoria-vazamento.mjs](ferramentas/auditoria-vazamento.mjs))
+sobre a árvore e **todos os blobs de todos os commits**: CNJ com dígito
+verificador válido, OAB fora da família fictícia, e-mail fora dos domínios de
+exemplo, segredos em formato conhecido, caminhos proibidos e uma lista de termos
+reais que vive só como segredo do Actions. Qualquer achado derruba o build — e o
+relatório sai redigido, porque o log é público.
 
 > Materiais de trabalho com as advogadas (`coleta/`) e relatórios dos spikes
 > (`spikes/relatorios/`) ficam apenas na máquina: contêm casos reais.
@@ -99,8 +115,9 @@ deploy/        Apps Script do escritório + launchd
 ## Rodar
 
 ```bash
-npm test                      # 87 testes (fundação + ingestão + briefing)
-npm run test:tudo             # + 29 dos spikes = 116
+npm test                      # 97 testes (fundação + ingestão + briefing + ferramentas)
+npm run test:tudo             # + 29 dos spikes = 126
+npm run auditoria:vazamento   # árvore + histórico: nenhum dado real pode estar aqui
 npm run briefing              # prévia do briefing local (não consome itens)
 npm run briefing:oficial      # coleta DJEN + gera + marca como relatado
 node src/core/diagnostico.mjs # estado do banco, auditoria, segredos e portões
