@@ -1,0 +1,75 @@
+# Esteira de integração contínua.
+#
+# Dois jobs independentes, ambos obrigatórios:
+#   • testes — a suíte hermética em Node 22 (sem rede, sem dado real, sem estado da máquina).
+#   • auditoria-vazamento — a árvore e TODO o histórico não podem conter dado real do
+#     escritório. Qualquer achado derruba o build; não é aviso.
+#
+# Só ações oficiais do GitHub (actions/*). Nenhum job tem permissão de escrita no repositório.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # node:sqlite é a base do projeto e está estável no uso, mas o Node 22 ainda o rotula
+  # "experimental" e cada processo de teste logaria um aviso. Silenciar só esse aviso.
+  NODE_OPTIONS: --disable-warning=ExperimentalWarning
+
+jobs:
+  testes:
+    name: Testes · Node 22
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      # Não há dependência para instalar: o passo existe para provar que o lockfile
+      # continua vazio (npm ci falha se package.json e package-lock.json divergirem).
+      - name: Conferir lockfile (zero dependências)
+        run: npm ci
+
+      - name: Suíte de fundação, ingestão e briefing
+        run: npm test
+
+      - name: Spikes em Node
+        run: node --test "spikes/**/*.test.mjs"
+
+      - name: Spikes em Python
+        run: python3 -m unittest discover -s spikes/lib -t spikes/lib -v
+
+  auditoria-vazamento:
+    name: Auditoria de vazamento · árvore + histórico
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # o histórico inteiro é objeto da auditoria
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      # SIGILO_DENYLIST (segredo do repositório): a lista de termos reais — nomes,
+      # clientes, processos — que nunca entra no código. Sem ela, os detectores por
+      # padrão (CNJ com DV válido, OAB, e-mail, segredos, caminhos) continuam valendo
+      # e o resumo declara a lacuna.
+      - name: Varredura (qualquer achado falha o job)
+        env:
+          SIGILO_DENYLIST: ${{ secrets.SIGILO_DENYLIST }}
+        run: node ferramentas/auditoria-vazamento.mjs --historico

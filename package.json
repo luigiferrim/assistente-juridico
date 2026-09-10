@@ -20,6 +20,7 @@
     "test:idempotencia": "node --test tests/idempotencia.test.mjs",
     "test:auditoria": "node --test tests/auditoria.test.mjs",
     "test:spikes": "node --test spikes/lib/djen.test.mjs",
+    "auditoria:vazamento": "node ferramentas/auditoria-vazamento.mjs --historico",
     "briefing": "node src/scripts/gerar-briefing.mjs --coletar",
     "briefing:oficial": "node src/scripts/gerar-briefing.mjs --coletar --marcar",
     "briefing:entregar": "node src/scripts/gerar-briefing.mjs --coletar --marcar --entregar"
