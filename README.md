@@ -53,6 +53,11 @@ além das iniciais; cópias da mesma intimação para vários destinatários vir
 
 ## Decisões de engenharia que valem a leitura
 
+> O fluxo completo, com o portão de aprovação no diagrama, está em
+> [ARCHITECTURE.md](ARCHITECTURE.md). As decisões que moldaram o sistema têm um
+> registro curto cada (contexto, decisão, consequência) em [docs/adr](docs/adr/README.md).
+> Para rodar do zero e contribuir: [CONTRIBUTING.md](CONTRIBUTING.md).
+
 1. **Auditoria é append-only no banco** — trigger recusa `UPDATE`/`DELETE`; não
    depende da disciplina de quem chama.
 2. **Idempotência é nossa, não do Google** — a reserva da chave grava *antes* da
@@ -110,6 +115,8 @@ src/worker/    fila de jobs, heartbeat
 tests/         suíte hermética (node:test)
 spikes/        Fase 0 — código descartável + bibliotecas de extração de PDF
 deploy/        Apps Script do escritório + launchd
+ferramentas/   esteira: auditoria de vazamento, lint, cobertura, conferidor do README
+docs/adr/      registros de decisão (ADR)
 ```
 
 ## Rodar
