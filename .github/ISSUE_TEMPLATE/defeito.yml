@@ -1,0 +1,48 @@
+name: Defeito
+description: Algo se comporta diferente do que o código, o README ou um ADR prometem.
+title: "[defeito] "
+labels: ["defeito"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por relatar. **Nenhum dado real** aqui: nome de parte, número de processo real,
+        e-mail de cliente, OAB real. Use os fictícios do projeto (Alfa Fictícia, Fulano de Teste,
+        OAB 10001/SC, CNJ com dígito verificador inválido) ou redija.
+  - type: textarea
+    id: observado
+    attributes:
+      label: O que aconteceu
+      description: O comportamento observado, com o comando rodado e a saída relevante (redigida, se preciso).
+      placeholder: |
+        npm test
+        ✖ ...
+    validations:
+      required: true
+  - type: textarea
+    id: esperado
+    attributes:
+      label: O que era esperado
+      description: E de onde vem a expectativa — README, ADR, comentário no código, comportamento anterior.
+    validations:
+      required: true
+  - type: input
+    id: ambiente
+    attributes:
+      label: Ambiente
+      description: Versão do Node (`node --version`), sistema operacional, commit (`git rev-parse --short HEAD`).
+      placeholder: "Node v22.x · macOS 15 · abc1234"
+    validations:
+      required: true
+  - type: checkboxes
+    id: invariantes
+    attributes:
+      label: Toca em algum invariante?
+      description: Marque se o defeito envolve uma destas garantias — elas têm prioridade.
+      options:
+        - label: Auditoria append-only
+        - label: Idempotência (ação externa repetida)
+        - label: "Erro tratado como \"não há nada\" (fim de lista, cobertura)"
+        - label: Prazo calculado sem memória/confirmação
+        - label: Segredo ou dado real em disco, log ou repositório
+        - label: Ação externa sem aprovação humana

@@ -103,7 +103,8 @@ reais que vive só como segredo do Actions. Qualquer achado derruba o build — 
 relatório sai redigido, porque o log é público.
 
 > Materiais de trabalho com as advogadas (`coleta/`) e relatórios dos spikes
-> (`spikes/relatorios/`) ficam apenas na máquina: contêm casos reais.
+> (`spikes/relatorios/`) ficam apenas na máquina: contêm casos reais. Achou
+> dado real aqui? O canal privado está em [SECURITY.md](SECURITY.md).
 
 ## Estrutura
 

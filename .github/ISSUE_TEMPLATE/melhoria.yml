@@ -1,0 +1,36 @@
+name: Melhoria
+description: Uma proposta de mudança — comportamento, ferramenta, documentação.
+title: "[melhoria] "
+labels: ["melhoria"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Antes de propor, vale ler o [CONTRIBUTING.md](https://github.com/luigiferrim/assistente-juridico/blob/main/CONTRIBUTING.md)
+        — em especial "O que o projeto deliberadamente NÃO faz" — e os
+        [ADRs](https://github.com/luigiferrim/assistente-juridico/blob/main/docs/adr/README.md).
+        Se a proposta contraria um ADR, o caminho é propor um ADR novo que o substitua.
+  - type: textarea
+    id: problema
+    attributes:
+      label: Que problema isto resolve
+      description: Para quem, em que momento do dia, com que frequência.
+    validations:
+      required: true
+  - type: textarea
+    id: proposta
+    attributes:
+      label: Proposta
+      description: O que mudaria, em que módulo, e como seria testado sem rede nem dado real.
+    validations:
+      required: true
+  - type: dropdown
+    id: adr
+    attributes:
+      label: Relação com as decisões registradas
+      options:
+        - Não toca em nenhum ADR
+        - Complementa um ADR existente (diga qual no texto)
+        - Contraria um ADR — proponho substituí-lo
+    validations:
+      required: true

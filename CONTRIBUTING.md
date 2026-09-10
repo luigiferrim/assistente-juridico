@@ -81,4 +81,4 @@ suíte e a CI rodam.
 5. **Commits em português**, descrevendo o porquê, não só o quê.
 
 Achou dado real ou falha de sigilo no repositório? **Não abra issue pública com o
-dado.** Fale com o autor pelo perfil do GitHub.
+dado.** O canal privado está em [SECURITY.md](SECURITY.md).

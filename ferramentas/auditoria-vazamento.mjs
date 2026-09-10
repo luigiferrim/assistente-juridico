@@ -100,6 +100,12 @@ export const GITIGNORE_OBRIGATORIO = [
   "spikes/relatorios/",
   "node_modules/",
   ".DS_Store",
+  "*.eml",
+  "*.sqlite",
+  "*.sqlite3",
+  "*.key",
+  "*.har",
+  ".claude/",
 ];
 
 /** Caminhos que nunca podem estar versionados, em nenhum commit. */

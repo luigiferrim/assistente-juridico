@@ -34,3 +34,15 @@ spikes/relatorios/
 
 # Relatório de cobertura gerado por `npm run test:cobertura` (node:test nativo).
 cobertura/
+
+# Outras formas que dado sob sigilo ou segredo costuma assumir. Mesmo que hoje
+# nenhum arquivo assim exista, a regra fica — o custo de esquecer é um vazamento.
+*.eml
+*.sqlite
+*.sqlite3
+*.key
+*.har
+
+# Configuração local de ferramentas de desenvolvimento (pode conter caminhos e
+# permissões da máquina).
+.claude/
