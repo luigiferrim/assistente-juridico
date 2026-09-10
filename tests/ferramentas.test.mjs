@@ -237,3 +237,60 @@ test("cobertura: o resumo soma totais e DECLARA os módulos que a suíte não ca
   assert.match(completo, /\*\*1 falhando\*\*/);
   assert.match(completo, /Todos os módulos de `src\/` foram carregados/);
 });
+
+// ---------------------------------------------------------------------------
+// lint — regras de ESM e as decisões do projeto, com o que o Node traz
+// ---------------------------------------------------------------------------
+
+import { verificarCodigo, verificarMigracoes, verificarTexto } from "../ferramentas/lint.mjs";
+
+const regrasDe = (achados) => achados.map((a) => a.regra).sort();
+// Fixtures montadas por concatenação: o lint varre este arquivo também, e não pode se acusar.
+const linhaImport = (alvo) => ["import x from ", `"${alvo}"`, ";"].join("");
+
+test("lint: higiene de texto — CRLF, tab em código, espaço no fim e quebra final", () => {
+  assert.deepEqual(verificarTexto("a.mjs", "const a = 1;\n"), []);
+  assert.deepEqual(regrasDe(verificarTexto("a.mjs", "const a = 1; \r\n")), ["crlf", "espaco-no-fim"]);
+  assert.deepEqual(regrasDe(verificarTexto("a.mjs", "\tconst a = 1;")), ["quebra-final", "tab"]);
+  // Markdown pode ter dois espaços no fim (quebra forçada); tab em .md também não é erro.
+  assert.deepEqual(verificarTexto("doc.md", "linha  \n\tcitação\n"), []);
+});
+
+test("lint: ESM — import relativo sem extensão, módulo nativo sem node:, require", () => {
+  const codigo = [linhaImport("./db"), linhaImport("fs"), linhaImport("node:fs"), linhaImport("./ok.mjs"), ["const y = requ", "ire('x');"].join(""), "// " + linhaImport("fs") + " (comentário não conta)"].join("\n");
+  const achados = verificarCodigo("ferramentas/x.mjs", codigo);
+  assert.deepEqual(regrasDe(achados), ["builtin-com-prefixo-node", "esm-puro", "import-com-extensao"]);
+  assert.deepEqual(achados.map((a) => a.linha).sort(), [1, 2, 5]);
+});
+
+test("lint: decisões do projeto — console, env, segredo, IA, rede em teste, STRICT, trigger, portão de prazos", () => {
+  const chamadaDeRede = (url) => ["fet", "ch(", `'${url}'`, ");"].join(""); // idem: o lint não pode se acusar
+  const nucleo = ["console.log('x');", "const db = process.env.AJ_BANCO;", "const t = process.env.ASSISTENTE_TOKEN;", "const p = '.env';", linhaImport("@anthropic-ai/sdk"), chamadaDeRede("https://api.anthropic.com/v1")].join("\n");
+  assert.deepEqual(regrasDe(verificarCodigo("src/core/x.mjs", nucleo)), [
+    "env-com-prefixo",
+    "log-estruturado",
+    "segredo-fora-do-disco",
+    "segredo-fora-do-disco",
+    "sem-ia-em-src",
+    "sem-ia-em-src",
+  ]);
+  // Pontos de entrada podem usar console; env com prefixo passa; fora de src/ as regras do projeto não valem.
+  assert.deepEqual(verificarCodigo("src/scripts/carga.mjs", "console.log(process.env.ASSISTENTE_DB);"), []);
+  assert.deepEqual(verificarCodigo("ferramentas/x.mjs", "console.log(process.env.QUALQUER);"), []);
+
+  // Teste não toca a rede.
+  assert.deepEqual(regrasDe(verificarCodigo("tests/x.test.mjs", [linhaImport("node:http"), `await ${chamadaDeRede("x")}`].join("\n"))), ["teste-sem-rede", "teste-sem-rede"]);
+
+  // Portão do motor de prazos: fechado passa; ligado é achado.
+  assert.deepEqual(verificarCodigo("src/core/prazos/index.mjs", "export const APROVADO_PELA_ADVOGADA = false;\n"), []);
+  assert.deepEqual(regrasDe(verificarCodigo("src/core/prazos/index.mjs", "export const APROVADO_PELA_ADVOGADA = true;\n")), ["portao-de-prazos"]);
+
+  // Migrações: STRICT em toda tabela; triggers de audit_log presentes e intocáveis.
+  const base = "CREATE TABLE a (id INTEGER) STRICT;\nCREATE TRIGGER t1 BEFORE UPDATE ON audit_log BEGIN SELECT RAISE(ABORT, 'x'); END;\nCREATE TRIGGER t2 BEFORE DELETE ON audit_log BEGIN SELECT RAISE(ABORT, 'x'); END;\n";
+  assert.deepEqual(verificarMigracoes([{ caminho: "001.sql", sql: base }]), []);
+  assert.deepEqual(regrasDe(verificarMigracoes([{ caminho: "001.sql", sql: base }, { caminho: "002.sql", sql: "CREATE TABLE b (id INTEGER);\nDROP TRIGGER t1;\n" }])), [
+    "auditoria-append-only",
+    "migracao-strict",
+  ]);
+  assert.deepEqual(regrasDe(verificarMigracoes([{ caminho: "001.sql", sql: "CREATE TABLE a (id INTEGER) STRICT;" }])), ["auditoria-append-only"], "sem os triggers não há auditoria");
+});

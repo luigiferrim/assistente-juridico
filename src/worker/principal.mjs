@@ -16,7 +16,7 @@ import { processarFila, saudeDoSistema } from "./jobs.mjs";
 import { diagnostico } from "../core/segredos.mjs";
 
 const RAIZ = new URL("../..", import.meta.url).pathname;
-const CAMINHO_BANCO = process.env.AJ_BANCO ?? join(RAIZ, "dados", "assistente.db");
+const CAMINHO_BANCO = process.env.ASSISTENTE_DB ?? join(RAIZ, "dados", "assistente.db");
 const CAMINHO_LOG = join(RAIZ, "dados", "logs", "worker.jsonl");
 
 /**

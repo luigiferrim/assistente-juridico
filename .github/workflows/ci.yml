@@ -64,6 +64,23 @@ jobs:
       - name: README confere com o código (testes, Node, dependências, licença)
         run: node ferramentas/verificar-readme.mjs
 
+  lint:
+    name: Lint · nativo, sem dependência
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      # Sintaxe (.mjs, .json, .py), higiene de texto, regras de ESM e as regras que
+      # encodam decisões do projeto (log estruturado, env com prefixo, segredo fora
+      # do disco, sem IA em src/, teste sem rede, tabela STRICT, auditoria append-only,
+      # portão do motor de prazos). Tudo com o que o Node traz.
+      - name: Lint
+        run: npm run lint
+
   auditoria-vazamento:
     name: Auditoria de vazamento · árvore + histórico
     runs-on: ubuntu-latest
