@@ -7,9 +7,8 @@
  *   node src/scripts/gerar-briefing.mjs --marcar         # geração oficial: marca itens como relatados
  *   node src/scripts/gerar-briefing.mjs --data 2026-08-11
  *   node src/scripts/gerar-briefing.mjs --entregar      # envia por e-mail via
- *       Apps Script (acao=entregar + token do config) — a ENTREGA RESERVA do
- *       bloco 3, para quando a rotina da nuvem falhar. Um comando e o briefing
- *       chega na caixa do escritório.
+ *       Apps Script (acao=entregar + token do config). Desde 16/10 é o job
+ *       diário das 7h45 que entrega: a rotina da nuvem não alcança o DJEN.
  *
  * Saída: dados/briefings/AAAA-MM-DD-local.html + resumo no stdout.
  * Código de saída 1 se alguma fonte falhou — o agendador fica sabendo.
@@ -92,7 +91,10 @@ if (args.includes("--entregar")) {
     body: new URLSearchParams({
       acao: "entregar",
       tk: config.aprovacao_token,
-      assunto: `☕ Briefing — ${dia}/${mes}/${ano}`,
+      // "do Diário" de propósito: o vigia das 8h procura "Briefing — DD/MM/AAAA"
+      // para saber se o e-mail da rotina da nuvem chegou, e este não pode
+      // mascarar a falta daquele.
+      assunto: `☕ Briefing do Diário — ${dia}/${mes}/${ano}`,
       html,
     }),
   });

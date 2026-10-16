@@ -295,7 +295,7 @@ Duas peças rodam todo dia útil, e vale ser exato sobre qual faz o quê:
 |---|---|---|
 | 07:00 | monta o briefing das 7h (Gmail + Agenda + alertas de publicação) | rotina agendada do **Claude na nuvem**, com conectores |
 | 07:15 | envia o e-mail ao escritório | Apps Script na conta do escritório |
-| 07:45 | coleta DJEN das 3 OABs, grava no SQLite deduplicado, **tria por regras** e arquiva o briefing determinístico | **worker local** via launchd (`--coletar --marcar`) |
+| 07:45 | coleta DJEN das 3 OABs, grava no SQLite deduplicado, **tria por regras** e **envia** o briefing do Diário (desde 16/10) | **worker local** via launchd (`--coletar --marcar --entregar`) |
 | 08:00 | alarme se o e-mail das 7h não chegou | Apps Script (vigia-do-vigia) |
 | ▶ | clique em Aprovar → evento na agenda + rascunho do aviso | Apps Script, sob aprovação humana |
 
@@ -304,16 +304,17 @@ rotina do Claude, que enxerga Gmail e Agenda — coisas que o worker local não
 enxerga. O **worker local é a fonte da verdade do Diário**: é ele que tem o
 DJEN (bloqueado para IP de datacenter), o banco, a deduplicação, a auditoria
 append-only e a **triagem determinística**, e é dele o briefing arquivado em
-`dados/briefings/`. Ele roda hoje como fonte de dados e entrega reserva; o
-canal de entrega por token existe e está testado (`--entregar`), mas o job
-diário ainda não o usa.
+`dados/briefings/`. Desde 16/10 o job diário também **entrega** esse briefing
+(`--entregar`), com o assunto `☕ Briefing do Diário — DD/MM/AAAA`: até então
+ele só arquivava, e as novidades do Diário eram consumidas sem chegar a
+ninguém, porque a rotina da nuvem não alcança o DJEN.
 
 **Consequência honesta:** a triagem por regras explícitas — a que diz *quais
 sinais* classificaram cada cartão — governa o briefing local, não o texto do
 e-mail das 7h. Fechar essa distância (o e-mail passar a ser o briefing
 determinístico, com a rotina do Claude cobrindo só Gmail e Agenda) é o próximo
-passo natural, e é barato: falta trocar o job das 7h45 para `--entregar` e
-mover o horário.
+passo natural. A entrega já foi ligada (16/10); falta mover o horário e
+reduzir a rotina da nuvem a Gmail e Agenda.
 
 ## Arquitetura: agentes especialistas, organizador determinístico
 
