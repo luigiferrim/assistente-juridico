@@ -10,12 +10,11 @@ arquivado, e um canal de entrega reserva para quando a nuvem falhar.
 
 `launchd` (agente do usuário, sem sudo): dias úteis às **07:45**, roda
 
-    node src/scripts/gerar-briefing.mjs --coletar --marcar --entregar
+    node src/scripts/gerar-briefing.mjs --coletar --marcar
 
 - coleta DJEN das 3 OABs (janela de 3 dias — perder um dia não perde item);
-- gera `dados/briefings/AAAA-MM-DD-local.html`, **envia por e-mail** com o
-  assunto `☕ Briefing do Diário — DD/MM/AAAA` e só então marca os itens como
-  relatados (entrega que falha não consome item);
+- gera `dados/briefings/AAAA-MM-DD-local.html` e marca os itens como
+  relatados (ciclo de vida do banco é do local);
 - log em `dados/logs/coleta.log`; saída 1 se alguma fonte falhou.
 - Se o Mac estiver dormindo às 07:45, o launchd roda ao acordar (não perde o
   dia; só atrasa). Mac desligado = sem coleta — a janela de 3 dias recupera.
@@ -30,13 +29,7 @@ Arquivo: `~/Library/LaunchAgents/br.adv.assistente.coleta.plist`
 | religar | `launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/br.adv.assistente.coleta.plist` |
 | ver o log | `tail -40 dados/logs/coleta.log` |
 
-**Por que o job entrega desde 16/10:** até 15/10 ele só arquivava. Como a
-rotina da nuvem não alcança o DJEN, as novidades do Diário eram marcadas como
-relatadas sem que ninguém as visse (16/10: 25 novidades e 3 audiências). O
-assunto leva "do Diário" para não se passar pelo e-mail da nuvem diante do
-vigia das 8h.
-
-## Entrega manual (reenvio ou teste)
+## Entrega reserva (quando a rotina da nuvem falhar)
 
 Se o alarme das 8h disparar ("o briefing NÃO chegou") e o rascunho não estiver
 na caixa, **um comando** entrega o briefing local por e-mail:
@@ -44,8 +37,8 @@ na caixa, **um comando** entrega o briefing local por e-mail:
     npm run briefing:entregar
 
 Ele coleta, gera, marca e envia o HTML para a caixa do escritório via o App da
-Web (`acao=entregar`, protegido pelo token do `dados/config.json`). Assunto
-`☕ Briefing do Diário — DD/MM/AAAA` (UTF-8 testado ✓). Falha em voz alta se o
+Web (`acao=entregar`, protegido pelo token do `dados/config.json`). Assunto no
+padrão `☕ Briefing — DD/MM/AAAA` (UTF-8 testado ✓). Falha em voz alta se o
 token for recusado — nunca finge que entregou.
 
 ## Limites declarados
