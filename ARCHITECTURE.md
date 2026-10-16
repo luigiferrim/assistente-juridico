@@ -142,7 +142,7 @@ booleanos com CHECK (0,1). Sem ORM — o SQL é pequeno e estável.
 Três jobs independentes em cada push e pull request, só com ações oficiais e
 permissão de leitura ([ci.yml](.github/workflows/ci.yml)):
 
-1. **Testes (Node 22)** — `npm ci` prova que o lockfile segue vazio; `npm test`;
+1. **Testes (Node 22 e 26)** — `npm ci` prova que o lockfile segue vazio; `npm test`;
    spikes em Node e em Python; cobertura nativa publicada no resumo da execução,
    com a lista do que a suíte não carrega; e o conferidor do README, que conta os
    testes de verdade e falha se badge, tabela ou comentário mentirem.

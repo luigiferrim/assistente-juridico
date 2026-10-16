@@ -1,7 +1,8 @@
 # Esteira de integração contínua.
 #
 # Dois jobs independentes, ambos obrigatórios:
-#   • testes — a suíte hermética em Node 22 (sem rede, sem dado real, sem estado da máquina).
+#   • testes — a suíte hermética em Node 22 (o piso do package.json) e Node 26 (o que roda
+#     em produção, no worker local), sem rede, sem dado real, sem estado da máquina.
 #   • auditoria-vazamento — a árvore e TODO o histórico não podem conter dado real do
 #     escritório. Qualquer achado derruba o build; não é aviso.
 #
@@ -29,14 +30,18 @@ env:
 
 jobs:
   testes:
-    name: Testes · Node 22
+    name: Testes · Node ${{ matrix.node }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 26]
     steps:
       - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: ${{ matrix.node }}
           cache: npm
 
       # Não há dependência para instalar: o passo existe para provar que o lockfile
