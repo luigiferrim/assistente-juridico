@@ -434,7 +434,7 @@ test("HTML: dark-safe (sem texto claro), âncoras, partes visíveis, teor escapa
   assert.doesNotMatch(html, /color:\s*#fff/i, "nenhum texto branco — modo escuro do Gmail");
   assert.match(html, /<a href="https:\/\/pje\/validacao\/1"/, "fonte como âncora");
   assert.match(html, /JOAO DA SILVA SANTOS × INDUSTRIA ALFA/, "partes por extenso no cartão");
-  assert.match(html, /ao aprovar, recebem o convite/, "proposta avisa que o clique convida (v4: um clique)");
+  assert.match(html, /ao aprovar, recebem o convite/i, "proposta avisa que o clique convida (v4: um clique)");
   assert.match(html, /conferir se já está na agenda/, "trava de dedup da agenda");
   assert.match(html, /O QUE ESTE BRIEFING NÃO VÊ/, "cobertura declarada sempre");
   assert.match(html, /e-mail do escritório não coberto/, "limite do gerador local dito em voz alta");

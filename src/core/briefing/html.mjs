@@ -3,17 +3,41 @@
  *
  *  • Celular primeiro: coluna única ≤600px, cartões empilhados, sem tabelas.
  *  • Modo escuro do Gmail: NUNCA texto claro sobre fundo colorido — só texto
- *    escuro (#222) sobre fundo claro; cor entra por borda lateral.
+ *    escuro sobre fundo claro (branco ou quase branco); a cor entra pelo texto
+ *    dos rótulos e por bordas, nunca por fundo saturado.
  *  • Todo link é âncora <a>, nunca URL crua (o Gmail embrulha URL crua num
  *    redirecionador feio).
  *  • Todo dado vindo de fora passa por escape — teor de comunicação contém
  *    HTML/entidades e não pode virar markup do e-mail.
+ *
+ * Linguagem visual (revisão de 15/10): editorial e discreta. Fundo papel,
+ * cartões brancos com fio fino, uma serifa só nos títulos e números, sans do
+ * sistema no resto (o Gmail ignora @font-face), rótulos pequenos em caixa alta
+ * com espaçamento, e cor reservada para o que pede atenção. Tudo inline: o
+ * Gmail descarta <style> em parte dos clientes.
  */
 
 import { NOME_ESCRITORIO, URL_APROVACAO } from "../escritorio.mjs";
 
-const CORES_URGENCIA = { hoje: "#c62828", semana: "#e0a000", informativo: "#9e9e9e" };
-const ROTULOS_URGENCIA = { hoje: "🔴 AGIR HOJE", semana: "🟡 ESTA SEMANA", informativo: "⚪ INFORMATIVO" };
+// ---------- Tokens -------------------------------------------------------------
+
+const SANS = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif";
+const SERIF = "'New York','Iowan Old Style',Charter,Georgia,'Times New Roman',serif";
+
+const COR = {
+  tinta: "#1a1a1a", // texto principal
+  suave: "#555555", // texto secundário
+  apagado: "#767676", // rótulos e notas (contraste AA sobre branco)
+  fio: "#e7e4de", // bordas e divisórias
+  papel: "#f6f5f1", // fundo da página
+  cartao: "#ffffff",
+  link: "#2b4c7e",
+  alerta: "#a15c00", // âmbar legível
+  agenda: "#2f6b3a",
+};
+
+const CORES_URGENCIA = { hoje: "#b3261e", semana: COR.alerta, informativo: COR.apagado };
+const ROTULOS_URGENCIA = { hoje: "AGIR HOJE", semana: "ESTA SEMANA", informativo: "INFORMATIVO" };
 
 export function escapar(s) {
   return String(s ?? "")
@@ -32,52 +56,77 @@ function dataBr(iso) {
   return `${d}/${m}/${a}`;
 }
 
+const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+
 const DIAS_SEMANA = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
 
+// ---------- Peças ---------------------------------------------------------------
+
 function ancora(url, texto) {
-  return `<a href="${escapar(url)}" style="color:#1a4d8f">${escapar(texto)}</a>`;
+  return `<a href="${escapar(url)}" style="color:${COR.link};text-decoration:none;font-weight:500">${escapar(texto)}</a>`;
 }
+
+/** Rótulo pequeno em caixa alta, com ponto colorido opcional. */
+function rotulo(texto, cor = COR.apagado, { ponto = false } = {}) {
+  const marca = ponto ? `<span style="color:${cor};font-size:10px;vertical-align:1px">●</span>&nbsp;&nbsp;` : "";
+  return `<div style="font-size:11px;line-height:16px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:${cor};margin:0 0 10px 0">${marca}${texto}</div>`;
+}
+
+function selo(texto) {
+  return ` <span style="display:inline-block;font-size:10px;line-height:14px;font-weight:600;letter-spacing:0.1em;color:${COR.suave};border:1px solid ${COR.fio};border-radius:999px;padding:1px 8px;vertical-align:2px">${texto}</span>`;
+}
+
+function cartao(conteudo) {
+  return `<div style="background:${COR.cartao};border:1px solid ${COR.fio};border-radius:14px;padding:20px 22px;margin:0 0 12px 0">${conteudo}</div>`;
+}
+
+/** Rodapé do cartão: divisória fina e as fontes. */
+function rodapeCartao(itens) {
+  if (!itens.length) return "";
+  return `<div style="border-top:1px solid ${COR.fio};margin-top:16px;padding-top:12px;font-size:12px;line-height:18px;color:${COR.apagado}">${itens.join(`<span style="color:${COR.fio}">&nbsp;&nbsp;|&nbsp;&nbsp;</span>`)}</div>`;
+}
+
+const titulo = (html) =>
+  `<div style="font-size:17px;line-height:24px;font-weight:600;color:${COR.tinta}">${html}</div>`;
+
+const meta = (texto) =>
+  `<div style="font-size:13px;line-height:20px;color:${COR.suave};margin-top:4px;font-variant-numeric:tabular-nums">${texto}</div>`;
+
+// ---------- Cartões -------------------------------------------------------------
 
 function cartaoItem(item) {
   const cor = CORES_URGENCIA[item.urgencia];
-  const linhas = [];
+  const linhas = [rotulo(ROTULOS_URGENCIA[item.urgencia], cor, { ponto: true })];
 
-  const titulo = [item.tipoDocumento ?? item.tipoComunicacao, item.partes]
-    .filter(Boolean)
-    .join(" — ");
-  linhas.push(
-    `<div style="font-size:12px;font-weight:bold;color:${cor};margin-bottom:3px">${ROTULOS_URGENCIA[item.urgencia]}</div>`,
-    `<div style="font-size:15px;color:#222222"><b>${escapar(titulo || "Comunicação")}</b>${item.sigilo ? " 🔒" : ""}</div>`,
-  );
+  const nome = [item.tipoDocumento ?? item.tipoComunicacao, item.partes].filter(Boolean).join(" — ");
+  linhas.push(titulo(`${escapar(nome || "Comunicação")}${item.sigilo ? selo("SIGILO") : ""}`));
 
-  const meta = [item.numeroCnj, item.tribunal, item.orgao].filter(Boolean).join(" · ");
-  if (meta) linhas.push(`<div style="font-size:13px;color:#555;margin-top:2px">${escapar(meta)}</div>`);
+  const dados = [item.numeroCnj, item.tribunal, item.orgao].filter(Boolean).join(" · ");
+  if (dados) linhas.push(meta(escapar(dados)));
 
   for (const sinal of item.sinais) {
-    linhas.push(`<div style="font-size:13px;color:#333;margin-top:4px">▸ ${escapar(sinal)}</div>`);
+    linhas.push(`<div style="font-size:14px;line-height:21px;color:${COR.tinta};margin-top:10px">${escapar(sinal)}</div>`);
   }
 
   if (item.publicacaoEstimada) {
     linhas.push(
-      `<div style="font-size:12px;color:#666;margin-top:4px">disponibilizada ${escapar(dataBr(item.dataDisponibilizacao))} · publicação estimada ${escapar(dataBr(item.publicacaoEstimada))} (CONFIRMAR)</div>`,
+      `<div style="font-size:12px;line-height:18px;color:${COR.apagado};margin-top:8px">Disponibilizada em ${escapar(dataBr(item.dataDisponibilizacao))} · publicação estimada em ${escapar(dataBr(item.publicacaoEstimada))} <span style="color:${COR.alerta};font-weight:600">(CONFIRMAR)</span></div>`,
     );
   }
 
   if (item.trecho) {
     linhas.push(
-      `<div style="font-size:12px;color:#666;margin-top:6px;border-left:2px solid #ddd;padding-left:8px">“${escapar(item.trecho)}…”</div>`,
+      `<div style="font-family:${SERIF};font-style:italic;font-size:14px;line-height:22px;color:${COR.suave};margin-top:12px;border-left:2px solid ${COR.fio};padding-left:12px">“${escapar(item.trecho)}…”</div>`,
     );
   }
 
   const fontes = [];
-  if (item.link) fontes.push(ancora(item.link, "📍 onde encontrei: comunicação no Diário"));
-  if (item.fonteObrigacao) fontes.push(`📍 fonte: ${escapar(item.fonteObrigacao)}`);
-  if (item.compartilhadaCom?.length) {
-    fontes.push(`também: ${escapar(item.compartilhadaCom.join(", "))}`);
-  }
-  if (fontes.length) linhas.push(`<div style="font-size:12px;margin-top:6px">${fontes.join(" · ")}</div>`);
+  if (item.link) fontes.push(ancora(item.link, "Onde encontrei: comunicação no Diário →"));
+  if (item.fonteObrigacao) fontes.push(`Fonte: ${escapar(item.fonteObrigacao)}`);
+  if (item.compartilhadaCom?.length) fontes.push(`Também: ${escapar(item.compartilhadaCom.join(", "))}`);
+  linhas.push(rodapeCartao(fontes));
 
-  return `<div style="border:1px solid #ddd;border-left:5px solid ${cor};border-radius:6px;padding:10px 12px;margin:8px 0">${linhas.join("")}</div>`;
+  return cartao(linhas.join(""));
 }
 
 /** Monta a URL do botão Aprovar (página de confirmação no Apps Script). */
@@ -119,56 +168,91 @@ function rotuloProposta(p) {
 }
 
 function cartaoProposta(p, urlAprovacao, tokenAprovacao) {
+  const quando = p.hora
+    ? `${escapar(p.data)}<span style="color:${COR.apagado}">&nbsp;·&nbsp;</span>${escapar(p.hora)}`
+    : `${escapar(p.data)}<div style="font-family:${SANS};font-size:13px;line-height:19px;font-weight:600;color:${COR.alerta}">Hora não detectada — conferir</div>`;
+
   const linhas = [
-    `<div style="font-size:12px;font-weight:bold;color:#1a5c1a;margin-bottom:3px">📅 PROPOSTA PARA A AGENDA ${p.advogado?.emoji ?? ""}</div>`,
-    `<div style="font-size:15px;color:#222222"><b>${escapar(rotuloProposta(p))} · ${escapar(p.data)}${p.hora ? ` às ${escapar(p.hora)}` : " (hora não detectada — conferir)"}</b>${p.sigilo ? " 🔒" : ""}</div>`,
-    `<div style="font-size:13px;color:#555;margin-top:2px">${escapar([p.partesTitulo ?? p.partes ?? "partes: conferir no teor", p.numeroCnj, p.orgao ?? p.tribunal].filter(Boolean).join(" · "))}</div>`,
+    rotulo("PROPOSTA PARA A AGENDA", COR.agenda, { ponto: true }),
+    titulo(`${escapar(rotuloProposta(p))}${p.sigilo ? selo("SIGILO") : ""}`),
+    `<div style="font-family:${SERIF};font-size:24px;line-height:32px;color:${COR.tinta};margin-top:2px;font-variant-numeric:tabular-nums">${quando}</div>`,
+    meta(escapar(p.partesTitulo ?? p.partes ?? "partes: conferir no teor")),
+    meta(escapar([p.numeroCnj, p.orgao ?? p.tribunal].filter(Boolean).join(" · "))),
   ];
-  if (p.linkSala) linhas.push(`<div style="font-size:13px;margin-top:4px">${ancora(p.linkSala, "link da sala virtual")}</div>`);
+  if (p.linkSala) {
+    linhas.push(`<div style="font-size:13px;line-height:20px;margin-top:8px">${ancora(p.linkSala, "Sala virtual →")}</div>`);
+  }
   if (p.convidadosSugeridos.length) {
     linhas.push(
-      `<div style="background:#f7f7f7;border-radius:4px;padding:8px 10px;margin-top:6px;font-size:12px;color:#222222"><b>Convidados</b> — ao aprovar, recebem o convite (ajustes depois, direto na agenda):<br>${p.convidadosSugeridos.map((e) => `· ${escapar(e)}`).join("<br>")}</div>`,
+      `<div style="border-top:1px solid ${COR.fio};margin-top:16px;padding-top:14px">${rotulo("CONVIDADOS")}<div style="font-size:12px;line-height:18px;color:${COR.apagado};margin:-4px 0 8px 0">Ao aprovar, recebem o convite (ajustes depois, direto na agenda).</div>${p.convidadosSugeridos
+        .map((e) => `<div style="font-size:13px;line-height:21px;color:${COR.tinta}">${escapar(e)}</div>`)
+        .join("")}</div>`,
     );
   }
   if (p.verificarAgenda) {
-    linhas.push(`<div style="font-size:12px;color:#8a6100;margin-top:6px">⚠️ conferir se já está na agenda antes de aprovar</div>`);
-  }
-  if (p.fonte?.link) {
-    linhas.push(`<div style="font-size:12px;margin-top:4px">${ancora(p.fonte.link, `📍 onde encontrei: Diário de ${dataBr(p.fonte.disponibilizadaEm)}`)}</div>`);
+    linhas.push(
+      `<div style="font-size:13px;line-height:19px;color:${COR.alerta};margin-top:14px"><b>Atenção:</b> conferir se já está na agenda antes de aprovar.</div>`,
+    );
   }
   if (urlAprovacao) {
-    // Botão de verdade: abre a página de confirmação (convidados editáveis,
-    // aviso de duplicata) e cria o evento na agenda. Nada é criado sem o
-    // clique final na página.
+    // Botão de verdade: o clique cria o evento na agenda (v4, um clique). Fundo
+    // branco e borda escura — fundo colorido com texto claro some no modo
+    // escuro do Gmail.
     linhas.push(
-      `<div style="margin-top:10px"><a href="${escapar(urlDoBotao(urlAprovacao, p, tokenAprovacao))}" style="display:inline-block;background:#d9efd9;color:#1b5e20;border:2px solid #1b5e20;padding:9px 18px;text-decoration:none;border-radius:5px;font-weight:bold">✅ Aprovar → agenda</a> <span style="font-size:11px;color:#666">cria o evento na hora (clique repetido não duplica; dá para desfazer) · se o Gmail mostrar "Aviso de redirecionamento", é normal: siga o link</span></div>`,
+      `<div style="margin-top:18px"><a href="${escapar(urlDoBotao(urlAprovacao, p, tokenAprovacao))}" style="display:inline-block;background:${COR.cartao};color:${COR.tinta};border:1.5px solid ${COR.tinta};border-radius:999px;padding:11px 24px;font-size:14px;line-height:20px;font-weight:600;letter-spacing:0.01em;text-decoration:none">Aprovar → agenda</a></div>`,
+      `<div style="font-size:11px;line-height:17px;color:${COR.apagado};margin-top:10px">Cria o evento na hora. Clique repetido não duplica e dá para desfazer. Se o Gmail mostrar “Aviso de redirecionamento”, é normal: siga o link.</div>`,
     );
   } else {
     linhas.push(
-      `<div style="font-size:12px;color:#444;margin-top:6px">Para aprovar: responda este e-mail com “aprovo a ${p.tipo === "pericia" ? "perícia" : "audiência"} de ${escapar(p.data)} — proc. ${escapar(p.numeroCnj)}”.</div>`,
+      `<div style="font-size:13px;line-height:19px;color:${COR.suave};margin-top:14px">Para aprovar: responda este e-mail com “aprovo a ${p.tipo === "pericia" ? "perícia" : "audiência"} de ${escapar(p.data)} — proc. ${escapar(p.numeroCnj)}”.</div>`,
     );
   }
-  return `<div style="border:2px solid #1a5c1a;border-radius:6px;padding:10px 12px;margin:8px 0;background:#fbfff9">${linhas.join("")}</div>`;
+  if (p.fonte?.link) {
+    linhas.push(rodapeCartao([ancora(p.fonte.link, `Onde encontrei: Diário de ${dataBr(p.fonte.disponibilizadaEm)} →`)]));
+  }
+  return cartao(linhas.join(""));
+}
+
+// ---------- Seções --------------------------------------------------------------
+
+function cabecalhoSecao(nome, detalhe, cor) {
+  const ponto = cor ? `<span style="color:${cor};font-size:12px;vertical-align:2px">●</span>&nbsp;&nbsp;` : "";
+  return `<div style="margin:40px 0 14px 0"><div style="font-family:${SERIF};font-size:22px;line-height:28px;color:${COR.tinta}">${ponto}${nome}</div>${detalhe ? `<div style="font-size:12px;line-height:18px;color:${COR.apagado};margin-top:4px;letter-spacing:0.02em">${detalhe}</div>` : ""}</div>`;
 }
 
 function secaoAdvogado({ advogado, itens }, propostas, urlAprovacao, tokenAprovacao) {
-  const cab = `<div style="background:#f4f4f4;border-left:6px solid ${advogado.cor};padding:8px 12px;margin:20px 0 6px 0;border-radius:4px"><b style="font-size:15px;color:#222222">${advogado.emoji} ${escapar(advogado.nome)}</b> <span style="font-size:12px;color:#555">— OAB ${escapar(advogado.oab)} · ${escapar(advogado.jurisdicao)}</span></div>`;
+  const cab = cabecalhoSecao(
+    escapar(advogado.nome),
+    `OAB ${escapar(advogado.oab)} · ${escapar(advogado.jurisdicao)}`,
+    advogado.cor,
+  );
   if (itens.length === 0 && propostas.length === 0) {
-    return `${cab}<div style="border:1px solid #ddd;border-radius:6px;padding:10px 12px;margin:8px 0;font-size:13px;color:#555">Nenhuma novidade <b>no que este briefing vê</b> — a cobertura tem limites, declarados no rodapé.</div>`;
+    return (
+      cab +
+      `<div style="border:1px dashed ${COR.fio};border-radius:14px;padding:18px 22px;font-size:14px;line-height:21px;color:${COR.suave}">Nenhuma novidade no que este briefing vê. A cobertura tem limites, declarados no rodapé.</div>`
+    );
   }
   const informativos = itens.filter((i) => i.urgencia === "informativo");
   const principais = itens.filter((i) => i.urgencia !== "informativo");
-  // Ordem definida pelo Luigi (11/08): PRIMEIRO a agenda do advogado (📅
-  // propostas), depois 🔴 agir hoje, 🟡 semana e ⚪ informativo.
+  // Ordem definida pelo Luigi (11/08): PRIMEIRO a agenda do advogado
+  // (propostas), depois agir hoje, semana e informativo.
   const blocos = [
     ...propostas.map((p) => cartaoProposta(p, urlAprovacao, tokenAprovacao)),
     ...principais.map(cartaoItem),
   ];
   if (informativos.length) {
     blocos.push(
-      `<div style="border:1px solid #ddd;border-left:5px solid #9e9e9e;border-radius:6px;padding:8px 12px;margin:8px 0;font-size:13px;color:#555">⚪ <b>Informativo</b> (${informativos.length}): ${informativos
-        .map((i) => escapar([i.tipoDocumento, i.partes, i.numeroCnj].filter(Boolean).join(" — ")))
-        .join(" · ")}</div>`,
+      cartao(
+        rotulo(`INFORMATIVO · ${informativos.length}`, COR.apagado, { ponto: true }) +
+          informativos
+            .map(
+              (i, n) =>
+                `<div style="font-size:13px;line-height:20px;color:${COR.suave};padding:8px 0;${n ? `border-top:1px solid ${COR.fio}` : ""}">${escapar(
+                  [i.tipoDocumento, i.partes, i.numeroCnj].filter(Boolean).join(" — "),
+                )}</div>`,
+            )
+            .join(""),
+      ),
     );
   }
   return cab + blocos.join("");
@@ -176,22 +260,22 @@ function secaoAdvogado({ advogado, itens }, propostas, urlAprovacao, tokenAprova
 
 function secaoVencimentos(vencimentos, condicionais) {
   if (vencimentos.length === 0 && condicionais.length === 0) return "";
-  const linhas = vencimentos.map((v) => {
-    const alerta = v.vencida
-      ? `<b style="color:#c62828">VENCIDA há ${-v.diasRestantes} dia(s) — confirmar pagamento</b>`
+  const linhas = vencimentos.map((v, n) => {
+    const situacao = v.vencida
+      ? `<span style="color:${CORES_URGENCIA.hoje};font-weight:600">Vencida há ${plural(-v.diasRestantes, "dia", "dias")} — confirmar pagamento</span>`
       : v.diasRestantes === 0
-        ? `<b style="color:#c62828">vence HOJE</b>`
-        : `vence em ${v.diasRestantes} dia(s) (${dataBr(v.vencimento)})`;
-    return `<div style="font-size:13px;color:#222222;margin:4px 0">· <b>${brl(v.valor_centavos)}</b> — ${escapar(v.descricao)} — ${escapar(v.partes)} · ${escapar(v.numero_cnj)} · ${alerta}</div>`;
+        ? `<span style="color:${CORES_URGENCIA.hoje};font-weight:600">Vence hoje</span>`
+        : `Vence em ${plural(v.diasRestantes, "dia", "dias")} · ${dataBr(v.vencimento)}`;
+    return `<div style="padding:12px 0;${n ? `border-top:1px solid ${COR.fio}` : "padding-top:0"}"><div style="font-family:${SERIF};font-size:20px;line-height:26px;color:${COR.tinta};font-variant-numeric:tabular-nums">${brl(v.valor_centavos)}</div><div style="font-size:14px;line-height:20px;color:${COR.tinta};margin-top:2px">${escapar(v.descricao)} — ${escapar(v.partes)}</div><div style="font-size:12px;line-height:18px;color:${COR.apagado};margin-top:2px">${escapar(v.numero_cnj)} · ${situacao}</div></div>`;
   });
   if (condicionais.length) {
     linhas.push(
-      `<div style="font-size:12px;color:#666;margin-top:6px">⏸ Aguardando gatilho (sem data — não é esquecimento): ${condicionais
+      `<div style="border-top:1px solid ${COR.fio};padding-top:12px;font-size:12px;line-height:18px;color:${COR.apagado}"><b style="color:${COR.suave}">Aguardando gatilho</b> (sem data — não é esquecimento): ${condicionais
         .map((c) => escapar(`${c.descricao} [${c.gatilho}]`))
         .join(" · ")}</div>`,
     );
   }
-  return `<div style="background:#f4f4f4;border-left:6px solid #607d8b;padding:8px 12px;margin:20px 0 6px 0;border-radius:4px"><b style="font-size:15px;color:#222222">⏳ Próximos vencimentos (14 dias)</b></div><div style="border:1px solid #ddd;border-radius:6px;padding:10px 12px">${linhas.join("")}</div>`;
+  return cabecalhoSecao("Próximos vencimentos", "Janela de 14 dias") + cartao(linhas.join(""));
 }
 
 function rodape(modelo) {
@@ -199,21 +283,47 @@ function rodape(modelo) {
     ? modelo.cobertura.fontes
         .map((f) => {
           const ok = f.status === "ok" || f.status === "vazio";
-          return `OAB ${escapar(f.oab)}: ${ok ? escapar(f.status) : `<b style="color:#c62828">${escapar(f.status)}</b>`}${f.completo ? "" : " (incompleta)"}`;
+          return `OAB ${escapar(f.oab)}: ${ok ? escapar(f.status) : `<b style="color:${CORES_URGENCIA.hoje}">${escapar(f.status)}</b>`}${f.completo ? "" : " (incompleta)"}`;
         })
         .join(" · ")
-    : '<b style="color:#c62828">nenhuma coleta registrada</b>';
-  return `<div style="background:#f2f2f2;border-top:2px solid #999;padding:10px 12px;margin-top:24px;font-size:11px;color:#555;line-height:1.6"><b>O QUE ESTE BRIEFING NÃO VÊ:</b> ${escapar(modelo.cobertura.naoVe)}${modelo.cobertura.emailCoberto ? "" : " · <b>e-mail do escritório não coberto por esta geração local</b>"}<br><b>Coleta (Diário):</b> ${statusFontes}<br>Gerado localmente em ${escapar(modelo.geradoEm)} — Fase 2, triagem por regras (sem IA); sinais explícitos em cada item.</div>`;
+    : `<b style="color:${CORES_URGENCIA.hoje}">nenhuma coleta registrada</b>`;
+  const etiqueta = (t) => `<b style="color:${COR.suave};font-weight:600;letter-spacing:0.08em">${t}</b>`;
+  return `<div style="border-top:1px solid ${COR.fio};margin-top:48px;padding-top:20px;font-size:11px;line-height:18px;color:${COR.apagado}"><div style="margin-bottom:10px">${etiqueta("O QUE ESTE BRIEFING NÃO VÊ")}<br>${escapar(modelo.cobertura.naoVe)}${modelo.cobertura.emailCoberto ? "" : " · <b>e-mail do escritório não coberto por esta geração local</b>"}</div><div style="margin-bottom:10px">${etiqueta("COLETA DO DIÁRIO")}<br>${statusFontes}</div><div>Gerado localmente em ${escapar(modelo.geradoEm)} — Fase 2, triagem por regras (sem IA); sinais explícitos em cada item.</div></div>`;
+}
+
+/** Texto de prévia da caixa de entrada — o resumo antes de abrir. */
+function preCabecalho(modelo) {
+  const { urgentes, comunicacoesNovas } = modelo.totais;
+  const propostas = modelo.propostasAgenda.length;
+  const resumo = [
+    urgentes ? plural(urgentes, "urgente", "urgentes") : null,
+    propostas ? `${plural(propostas, "proposta", "propostas")} para a agenda` : null,
+    plural(comunicacoesNovas, "novidade", "novidades"),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  // O preenchimento invisível impede o Gmail de completar a prévia com o
+  // começo do corpo.
+  return `<div style="display:none;max-height:0;overflow:hidden;opacity:0;font-size:1px;line-height:1px;color:${COR.papel}">${escapar(resumo)}${"&#847;&zwnj;&nbsp;".repeat(60)}</div>`;
+}
+
+function numero(valor, legenda, cor = COR.tinta) {
+  return `<div style="display:inline-block;vertical-align:top;margin:0 28px 0 0"><div style="font-family:${SERIF};font-size:30px;line-height:36px;color:${cor};font-variant-numeric:tabular-nums">${valor}</div><div style="font-size:11px;line-height:16px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:${COR.apagado}">${legenda}</div></div>`;
 }
 
 export function renderizarHtml(modelo, { urlAprovacao = URL_APROVACAO, tokenAprovacao = null, nomeEscritorio = NOME_ESCRITORIO } = {}) {
   const [ano, mes, dia] = modelo.data.split("-").map(Number);
   const diaSemana = DIAS_SEMANA[new Date(Date.UTC(ano, mes - 1, dia, 12)).getUTCDay()];
+  const { urgentes, comunicacoesNovas } = modelo.totais;
+  const propostas = modelo.propostasAgenda.length;
 
   const partes = [
-    `<div style="max-width:600px;margin:0 auto;padding:12px;font-family:Georgia,serif;color:#222222">`,
-    `<h1 style="font-size:20px;color:#222222;border-bottom:3px solid #444;padding-bottom:6px;margin:0 0 4px 0">☕ Briefing — ${diaSemana}, ${dataBr(modelo.data)}</h1>`,
-    `<p style="font-size:12px;color:#666;margin:0 0 14px 0">${escapar(nomeEscritorio)} — ${modelo.totais.comunicacoesNovas} novidade(s) · ${modelo.totais.urgentes} urgente(s)</p>`,
+    `<div style="background:${COR.papel};padding:36px 16px 40px 16px;font-family:${SANS};color:${COR.tinta};-webkit-text-size-adjust:100%">`,
+    preCabecalho(modelo),
+    `<div style="max-width:600px;margin:0 auto">`,
+    `<div style="font-size:11px;line-height:16px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:${COR.apagado}">${escapar(nomeEscritorio)}&nbsp;&nbsp;·&nbsp;&nbsp;Briefing ${dataBr(modelo.data)}</div>`,
+    `<h1 style="font-family:${SERIF};font-size:34px;line-height:40px;font-weight:400;color:${COR.tinta};margin:10px 0 24px 0">${diaSemana[0].toUpperCase()}${diaSemana.slice(1)}</h1>`,
+    `<div style="border-top:1px solid ${COR.fio};border-bottom:1px solid ${COR.fio};padding:16px 0 14px 0">${numero(comunicacoesNovas, comunicacoesNovas === 1 ? "novidade" : "novidades")}${numero(urgentes, urgentes === 1 ? "urgente" : "urgentes", urgentes ? CORES_URGENCIA.hoje : COR.tinta)}${numero(propostas, "na agenda")}</div>`,
   ];
 
   // Propostas de agenda vivem DENTRO da seção do advogado responsável, no
@@ -228,6 +338,6 @@ export function renderizarHtml(modelo, { urlAprovacao = URL_APROVACAO, tokenApro
   );
   partes.push(secaoVencimentos(modelo.vencimentos, modelo.condicionais));
   partes.push(rodape(modelo));
-  partes.push(`</div>`);
+  partes.push(`</div></div>`);
   return partes.join("\n");
 }

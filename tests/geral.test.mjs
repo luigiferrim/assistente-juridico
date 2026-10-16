@@ -179,7 +179,8 @@ test("GERAL: montagem — dedup, subtipos, títulos, classes de prazo e obrigaç
 test("GERAL: HTML — ordem das seções, agenda primeiro, botão completo, dark-safe e sem dado real", () => {
   const db = cenarioCompleto();
   const html = renderizarHtml(montar(db), { urlAprovacao: URL_TESTE, tokenAprovacao: "tk-teste", nomeEscritorio: "Escritório de Teste" });
-  assert.match(html, /Escritório de Teste — 5 novidade\(s\)/, "nome do escritório injetável — teste não lê config real");
+  assert.match(html, /Escritório de Teste/, "nome do escritório injetável — teste não lê config real");
+  assert.match(html, /1 urgente · 3 propostas para a agenda · 5 novidades/, "prévia da caixa de entrada resume o dia");
 
   // Um briefing por advogado, na ordem do escritório.
   const iA1 = html.indexOf("Dra. Advogada 1");
@@ -194,8 +195,8 @@ test("GERAL: HTML — ordem das seções, agenda primeiro, botão completo, dark
   assert.ok(iProposta > -1 && iAgir > -1 && iProposta < iAgir, "agenda no topo da seção");
 
   // Cabeçalho do cartão e título do botão CONCORDAM no subtipo.
-  assert.match(html, /Audiência de instrução · 20\/10\/2026/);
-  assert.match(html, /Audiência de conciliação · 31\/10\/2026/);
+  assert.match(html, /Audiência de instrução<\/div>[^]{0,400}?20\/10\/2026/);
+  assert.match(html, /Audiência de conciliação<\/div>[^]{0,400}?31\/10\/2026/);
 
   // Botão: título, pn (empregado), convidados, cor, token — e nada de authuser.
   assert.match(html, /t=Alfa\+Fict%C3%ADcia\+%C3%97\+FULANO\+DE\+TESTE\+PEREIRA\+%C2%B7\+Instru%C3%A7%C3%A3o/);
@@ -206,7 +207,7 @@ test("GERAL: HTML — ordem das seções, agenda primeiro, botão completo, dark
   assert.doesNotMatch(html, /authuser/);
 
   // Perícia sem hora pede conferência em voz alta.
-  assert.match(html, /hora não detectada — conferir/);
+  assert.match(html, /hora não detectada — conferir/i);
 
   // Regras de e-mail: dark-safe, mobile-first, âncoras, cobertura declarada.
   assert.doesNotMatch(html, /color:\s*#fff/i);
