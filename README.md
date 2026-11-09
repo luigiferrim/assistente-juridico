@@ -19,6 +19,17 @@ desde 12/08/2026**, com ciclo diário 100% automático.
 **Regra que não se negocia:** o sistema *propõe*; a advogada *aprova*. Nenhuma
 ação externa (agenda, e-mail a cliente) acontece sem aprovação humana explícita.
 
+## Em 1 minuto
+
+| | |
+|---|---|
+| **A dor** | Toda manhã alguém precisava abrir o Diário de Justiça, achar o que chegou para cada advogada, decidir o que era urgente e lembrar de avisar o cliente e marcar a audiência. Trabalho manual, repetitivo e com risco de perder prazo. |
+| **O que mudou** | Desde 12/08/2026 o briefing chega sozinho às 7h15, já triado (agir hoje · esta semana · informativo). Se ele não chegar, um alarme dispara às 8h. Audiência vai para a agenda com um clique de aprovação. |
+| **Onde entra a IA** | Uma rotina agendada do Claude, com conectores de Gmail e Agenda, monta o e-mail da manhã. A **triagem** ficou por regras explicáveis: era para ser um classificador de IA, mas os sinais eram legíveis e a advogada precisa saber *por que* algo é urgente. IA fica para onde ela agrega: ler atas, sempre citando o trecho de origem. |
+| **Onde fica o humano** | Toda ação externa passa por aprovação. O motor de prazos existe, mas só vira oficial depois que a advogada conferir os cálculos à mão. O sistema nunca diz "não há nada": diz o que ele vê e o que fica fora da cobertura. |
+| **Como sei que funciona** | 131 testes herméticos rodando na CI a cada commit, auditoria de vazamento de dado real sobre todo o histórico e este README conferido pelo build. |
+| **Meu papel** | Discovery com as usuárias, especificação, construção (com Claude Code como par de programação) e operação no dia a dia. |
+
 <p align="center"><img src="docs/briefing-exemplo.png" width="640" alt="Briefing matinal de exemplo: propostas para a agenda com botão Aprovar, vencimento urgente e cartões por advogado"></p>
 
 *Briefing de exemplo, gerado pela própria suíte com dados fictícios — o e-mail que a advogada recebe às 7h.*
